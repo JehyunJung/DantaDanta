@@ -1,7 +1,10 @@
 """KIS OAuth 액세스 토큰 및 WebSocket 접속키 관리."""
 
 import asyncio
+import json
 from datetime import datetime, timedelta
+from functools import lru_cache
+from pathlib import Path
 
 import httpx
 from loguru import logger
@@ -11,10 +14,15 @@ from sagopalgo.config import Settings, get_settings
 _TOKEN_ENDPOINT = "/oauth2/tokenP"
 _WS_KEY_ENDPOINT = "/oauth2/Approval"
 _REFRESH_BEFORE_SECONDS = 300  # 만료 5분 전에 갱신
+_TOKEN_CACHE_FILE = Path(".token_cache.json")
 
 
 class TokenManager:
-    """액세스 토큰 발급 및 자동 갱신."""
+    """액세스 토큰 발급 및 자동 갱신.
+
+    - 메모리 캐시: 같은 프로세스 내 중복 발급 방지
+    - 파일 캐시: 프로세스 재시작 후에도 유효한 토큰 재사용 (KIS는 24시간 유효)
+    """
 
     def __init__(self, settings: Settings | None = None) -> None:
         self._cfg = settings or get_settings()
@@ -22,6 +30,7 @@ class TokenManager:
         self._expires_at: datetime = datetime.min
         self._ws_approval_key: str = ""
         self._lock = asyncio.Lock()
+        self._load_cache()
 
     @property
     def base_url(self) -> str:
@@ -47,11 +56,42 @@ class TokenManager:
         self._access_token = ""
         self._expires_at = datetime.min
         self._ws_approval_key = ""
+        _TOKEN_CACHE_FILE.unlink(missing_ok=True)
 
     def _is_token_valid(self) -> bool:
         if not self._access_token:
             return False
         return datetime.now() < self._expires_at - timedelta(seconds=_REFRESH_BEFORE_SECONDS)
+
+    def _load_cache(self) -> None:
+        """파일에서 캐시된 토큰 로드. 앱키가 다르거나 만료됐으면 무시."""
+        if not _TOKEN_CACHE_FILE.exists():
+            return
+        try:
+            data = json.loads(_TOKEN_CACHE_FILE.read_text())
+            if data.get("app_key") != self._cfg.kis_app_key:
+                return  # 다른 앱키의 토큰
+            expires_at = datetime.fromisoformat(data["expires_at"])
+            if datetime.now() >= expires_at - timedelta(seconds=_REFRESH_BEFORE_SECONDS):
+                return  # 이미 만료 임박
+            self._access_token = data["access_token"]
+            self._expires_at = expires_at
+            logger.info(
+                "캐시된 토큰 재사용 | 만료: {}",
+                self._expires_at.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+        except Exception as exc:
+            logger.debug("토큰 캐시 로드 실패 (무시): {}", exc)
+
+    def _save_cache(self) -> None:
+        try:
+            _TOKEN_CACHE_FILE.write_text(json.dumps({
+                "app_key": self._cfg.kis_app_key,
+                "access_token": self._access_token,
+                "expires_at": self._expires_at.isoformat(),
+            }))
+        except Exception as exc:
+            logger.debug("토큰 캐시 저장 실패 (무시): {}", exc)
 
     async def _issue_token(self) -> None:
         payload = {
@@ -65,11 +105,12 @@ class TokenManager:
                 json=payload,
                 timeout=10,
             )
+            if not resp.is_success:
+                logger.error("토큰 발급 실패 | status={} body={}", resp.status_code, resp.text)
             resp.raise_for_status()
             data = resp.json()
 
         self._access_token = data["access_token"]
-        # expires_in(초) 또는 access_token_token_expired(datetime str) 중 하나 사용
         if "expires_in" in data:
             self._expires_at = datetime.now() + timedelta(seconds=int(data["expires_in"]))
         elif "access_token_token_expired" in data:
@@ -79,10 +120,8 @@ class TokenManager:
         else:
             self._expires_at = datetime.now() + timedelta(hours=24)
 
-        logger.info(
-            "액세스 토큰 발급 완료 | 만료: {}",
-            self._expires_at.strftime("%Y-%m-%d %H:%M:%S"),
-        )
+        self._save_cache()
+        logger.info("액세스 토큰 발급 완료 | 만료: {}", self._expires_at.strftime("%Y-%m-%d %H:%M:%S"))
 
     async def _issue_ws_approval_key(self) -> None:
         payload = {
@@ -101,3 +140,9 @@ class TokenManager:
 
         self._ws_approval_key = data["approval_key"]
         logger.info("WebSocket 접속키 발급 완료")
+
+
+@lru_cache(maxsize=1)
+def get_token_manager() -> TokenManager:
+    """프로세스 내 싱글턴 TokenManager."""
+    return TokenManager()

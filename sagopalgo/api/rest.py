@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 from loguru import logger
 
-from sagopalgo.api.auth import TokenManager
+from sagopalgo.api.auth import TokenManager, get_token_manager
 from sagopalgo.config import Settings, get_settings
 
 
@@ -13,11 +13,16 @@ class KisRestClient:
     """KIS REST API 클라이언트.
 
     토큰 자동 주입, 401 시 1회 재시도, 공통 헤더 처리.
+    auth를 명시하지 않으면 프로세스 싱글턴 TokenManager를 사용.
     """
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        auth: TokenManager | None = None,
+    ) -> None:
         self._cfg = settings or get_settings()
-        self._auth = TokenManager(self._cfg)
+        self._auth = auth or get_token_manager()
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "KisRestClient":
@@ -47,6 +52,8 @@ class KisRestClient:
                 self._auth.invalidate()
                 continue
 
+            if not resp.is_success:
+                logger.error("HTTP 오류 | status={} body={}", resp.status_code, resp.text)
             resp.raise_for_status()
             data = resp.json()
 
