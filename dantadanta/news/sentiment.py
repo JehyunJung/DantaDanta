@@ -5,8 +5,8 @@ from dataclasses import dataclass
 import anthropic
 from loguru import logger
 
-from sagopalgo.config import get_settings
-from sagopalgo.news.collector import NewsItem
+from dantadanta.config import get_settings
+from dantadanta.news.collector import NewsItem
 
 _MODEL = "claude-haiku-4-5-20251001"  # 빠르고 저렴한 모델로 감성 분석
 

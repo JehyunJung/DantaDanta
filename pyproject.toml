@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sagopalgo"
+name = "dantadanta"
 version = "0.1.0"
 description = "KIS Open API 기반 자동 주식 트레이딩 시스템"
 requires-python = ">=3.12"
@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["sagopalgo", "web"]
+packages = ["dantadanta", "web"]
 
 [tool.ruff]
 line-length = 100

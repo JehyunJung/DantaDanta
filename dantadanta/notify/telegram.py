@@ -3,7 +3,7 @@
 import httpx
 from loguru import logger
 
-from sagopalgo.config import get_settings
+from dantadanta.config import get_settings
 
 _API_BASE = "https://api.telegram.org/bot{token}/sendMessage"
 

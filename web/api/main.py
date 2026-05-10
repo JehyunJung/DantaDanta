@@ -7,7 +7,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from sagopalgo.api.rest import KisRestClient
+from dantadanta.api.rest import KisRestClient
 from web.api import ws as ws_module
 from web.api.database import init_db
 from web.api.deps import set_client

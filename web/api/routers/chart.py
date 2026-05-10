@@ -4,8 +4,8 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query
 
-from sagopalgo.analysis.indicators import add_indicators
-from sagopalgo.api.market import MarketApi
+from dantadanta.analysis.indicators import add_indicators
+from dantadanta.api.market import MarketApi
 from web.api.deps import get_market_api
 
 router = APIRouter(prefix="/api/chart", tags=["chart"])

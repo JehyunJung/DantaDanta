@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 from loguru import logger
 
-from sagopalgo.config import Settings, get_settings
+from dantadanta.config import Settings, get_settings
 
 _TOKEN_ENDPOINT = "/oauth2/tokenP"
 _WS_KEY_ENDPOINT = "/oauth2/Approval"

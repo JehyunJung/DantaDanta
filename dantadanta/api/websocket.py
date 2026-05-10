@@ -8,8 +8,8 @@ from typing import Any
 import websockets
 from loguru import logger
 
-from sagopalgo.api.auth import TokenManager
-from sagopalgo.config import Settings, get_settings
+from dantadanta.api.auth import TokenManager
+from dantadanta.config import Settings, get_settings
 
 _RECONNECT_DELAY = 5  # 재연결 대기(초)
 _MAX_RECONNECT = 10

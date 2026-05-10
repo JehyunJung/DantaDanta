@@ -5,8 +5,8 @@ from datetime import date, timedelta
 
 from loguru import logger
 
-from sagopalgo.analysis.indicators import add_indicators, score
-from sagopalgo.api.market import MarketApi
+from dantadanta.analysis.indicators import add_indicators, score
+from dantadanta.api.market import MarketApi
 
 
 @dataclass

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from loguru import logger
 
-from sagopalgo.api.rest import KisRestClient
-from sagopalgo.config import get_settings
+from dantadanta.api.rest import KisRestClient
+from dantadanta.config import get_settings
 
 _ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"
 _BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"

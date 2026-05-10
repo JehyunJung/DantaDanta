@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:apiportal.koreainvestment.com)",
+      "Bash(uv sync *)",
+      "Bash(pip3 --version)",
+      "Bash(pip3 install *)",
+      "Bash(uv run *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(brew install *)",
+      "Bash(npm install *)",
+      "Bash(mv /Users/jehyunjung/Codes/AI-SagoPalgo /Users/jehyunjung/Codes/DantaDanta && echo \"Done\")"
+    ]
+  }
+}

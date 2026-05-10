@@ -7,7 +7,7 @@ from collections import defaultdict
 from fastapi import WebSocket
 from loguru import logger
 
-from sagopalgo.api.market import MarketApi
+from dantadanta.api.market import MarketApi
 from web.api.deps import get_market_api
 
 # symbol → 연결된 WebSocket 목록

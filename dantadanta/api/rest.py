@@ -5,8 +5,8 @@ from typing import Any
 import httpx
 from loguru import logger
 
-from sagopalgo.api.auth import TokenManager, get_token_manager
-from sagopalgo.config import Settings, get_settings
+from dantadanta.api.auth import TokenManager, get_token_manager
+from dantadanta.config import Settings, get_settings
 
 
 class KisRestClient:

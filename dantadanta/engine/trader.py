@@ -4,13 +4,13 @@ from datetime import date, timedelta
 
 from loguru import logger
 
-from sagopalgo.api.market import MarketApi
-from sagopalgo.api.order import OrderApi
-from sagopalgo.analysis.indicators import add_indicators
-from sagopalgo.engine.budget import BudgetManager
-from sagopalgo.news.collector import fetch_stock_news
-from sagopalgo.news.sentiment import analyze as analyze_sentiment
-from sagopalgo.strategy.base import BaseStrategy, Signal
+from dantadanta.api.market import MarketApi
+from dantadanta.api.order import OrderApi
+from dantadanta.analysis.indicators import add_indicators
+from dantadanta.engine.budget import BudgetManager
+from dantadanta.news.collector import fetch_stock_news
+from dantadanta.news.sentiment import analyze as analyze_sentiment
+from dantadanta.strategy.base import BaseStrategy, Signal
 
 _STOP_LOSS_RATE = -0.05    # -5% 손절
 _TAKE_PROFIT_RATE = 0.10   # +10% 익절

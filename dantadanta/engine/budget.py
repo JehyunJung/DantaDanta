@@ -4,7 +4,7 @@ import asyncio
 
 from loguru import logger
 
-from sagopalgo.config import get_settings
+from dantadanta.config import get_settings
 
 
 class BudgetManager:

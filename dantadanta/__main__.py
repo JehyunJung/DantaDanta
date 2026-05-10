@@ -1,4 +1,4 @@
-"""SagoPalgo 엔트리포인트 — `python -m sagopalgo` 또는 `uv run python -m sagopalgo`."""
+"""SagoPalgo 엔트리포인트 — `python -m dantadanta` 또는 `uv run python -m dantadanta`."""
 
 import asyncio
 import sys
@@ -6,16 +6,16 @@ import sys
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
 
-from sagopalgo.api.auth import TokenManager
-from sagopalgo.api.market import MarketApi
-from sagopalgo.api.order import OrderApi
-from sagopalgo.api.rest import KisRestClient
-from sagopalgo.config import get_settings
-from sagopalgo.engine.budget import BudgetManager
-from sagopalgo.engine.trader import Trader
-from sagopalgo.notify.telegram import notify_error, notify_summary
-from sagopalgo.strategy.ma_cross import MaCrossStrategy
-from sagopalgo.universe import UNIVERSE
+from dantadanta.api.auth import TokenManager
+from dantadanta.api.market import MarketApi
+from dantadanta.api.order import OrderApi
+from dantadanta.api.rest import KisRestClient
+from dantadanta.config import get_settings
+from dantadanta.engine.budget import BudgetManager
+from dantadanta.engine.trader import Trader
+from dantadanta.notify.telegram import notify_error, notify_summary
+from dantadanta.strategy.ma_cross import MaCrossStrategy
+from dantadanta.universe import UNIVERSE
 
 _trader: Trader | None = None
 
@@ -54,7 +54,7 @@ def _setup_logger() -> None:
     logger.remove()
     logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
     logger.add(
-        "logs/sagopalgo_{time:YYYY-MM-DD}.log",
+        "logs/dantadanta_{time:YYYY-MM-DD}.log",
         level="DEBUG",
         rotation="1 day",
         retention="30 days",

@@ -4,7 +4,7 @@ from datetime import date
 
 import pandas as pd
 
-from sagopalgo.api.rest import KisRestClient
+from dantadanta.api.rest import KisRestClient
 
 _PRICE_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"
 _DAILY_CHART_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"

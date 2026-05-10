@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from sagopalgo.api.order import OrderApi
+from dantadanta.api.order import OrderApi
 from web.api.deps import get_order_api
 
 router = APIRouter(prefix="/api/account", tags=["account"])

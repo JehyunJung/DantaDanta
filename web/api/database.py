@@ -2,7 +2,7 @@
 
 from sqlmodel import Session, SQLModel, create_engine
 
-_DB_URL = "sqlite:///./sagopalgo.db"
+_DB_URL = "sqlite:///./dantadanta.db"
 engine = create_engine(_DB_URL, connect_args={"check_same_thread": False})
 
 

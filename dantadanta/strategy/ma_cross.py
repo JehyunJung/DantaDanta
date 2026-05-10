@@ -2,8 +2,8 @@
 
 import pandas as pd
 
-from sagopalgo.analysis.indicators import add_indicators
-from sagopalgo.strategy.base import BaseStrategy, Signal, TradeSignal
+from dantadanta.analysis.indicators import add_indicators
+from dantadanta.strategy.base import BaseStrategy, Signal, TradeSignal
 
 
 class MaCrossStrategy(BaseStrategy):

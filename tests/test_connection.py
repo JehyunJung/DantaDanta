@@ -5,11 +5,11 @@ from datetime import date, timedelta
 
 from loguru import logger
 
-from sagopalgo.api.auth import get_token_manager
-from sagopalgo.api.market import MarketApi
-from sagopalgo.api.order import OrderApi
-from sagopalgo.api.rest import KisRestClient
-from sagopalgo.config import get_settings
+from dantadanta.api.auth import get_token_manager
+from dantadanta.api.market import MarketApi
+from dantadanta.api.order import OrderApi
+from dantadanta.api.rest import KisRestClient
+from dantadanta.config import get_settings
 
 
 async def main() -> None:

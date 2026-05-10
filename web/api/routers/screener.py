@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, Depends
 
-from sagopalgo.analysis.screener import screen
-from sagopalgo.api.market import MarketApi
-from sagopalgo.universe import UNIVERSE
+from dantadanta.analysis.screener import screen
+from dantadanta.api.market import MarketApi
+from dantadanta.universe import UNIVERSE
 from web.api.deps import get_market_api
 
 router = APIRouter(prefix="/api/screener", tags=["screener"])

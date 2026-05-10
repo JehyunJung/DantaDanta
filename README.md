@@ -29,16 +29,16 @@ cp .env.example .env
 
 ```bash
 # 모의투자 모드 (기본값)
-uv run python -m sagopalgo
+uv run python -m dantadanta
 
 # 실거래 모드 (.env에서 KIS_IS_MOCK=false 설정)
-uv run python -m sagopalgo
+uv run python -m dantadanta
 ```
 
 ## 프로젝트 구조
 
 ```
-sagopalgo/
+dantadanta/
 ├── api/        # KIS API 클라이언트 (REST + WebSocket)
 ├── analysis/   # 차트 분석 및 기술적 지표
 ├── news/       # 뉴스 수집 및 감성 분석

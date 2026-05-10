@@ -1,8 +1,8 @@
 """FastAPI 의존성 주입."""
 
-from sagopalgo.api.market import MarketApi
-from sagopalgo.api.order import OrderApi
-from sagopalgo.api.rest import KisRestClient
+from dantadanta.api.market import MarketApi
+from dantadanta.api.order import OrderApi
+from dantadanta.api.rest import KisRestClient
 
 # 앱 전체에서 하나의 클라이언트 공유
 _client: KisRestClient | None = None
