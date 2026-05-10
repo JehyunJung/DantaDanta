@@ -6,6 +6,7 @@ import sys
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from loguru import logger
 
+from sagopalgo.api.auth import TokenManager
 from sagopalgo.api.market import MarketApi
 from sagopalgo.api.order import OrderApi
 from sagopalgo.api.rest import KisRestClient
@@ -14,20 +15,7 @@ from sagopalgo.engine.budget import BudgetManager
 from sagopalgo.engine.trader import Trader
 from sagopalgo.notify.telegram import notify_error, notify_summary
 from sagopalgo.strategy.ma_cross import MaCrossStrategy
-
-# ── 매매 대상 종목 유니버스 (필요에 따라 수정) ──────────────────────────────
-UNIVERSE = [
-    "005930",  # 삼성전자
-    "000660",  # SK하이닉스
-    "035420",  # NAVER
-    "005380",  # 현대차
-    "051910",  # LG화학
-    "006400",  # 삼성SDI
-    "035720",  # 카카오
-    "207940",  # 삼성바이오로직스
-    "068270",  # 셀트리온
-    "105560",  # KB금융
-]
+from sagopalgo.universe import UNIVERSE
 
 _trader: Trader | None = None
 
@@ -81,7 +69,8 @@ async def main() -> None:
     mode = "모의투자" if cfg.kis_is_mock else "실거래"
     logger.info("SagoPalgo 시작 | 모드={} 예산={:,}원", mode, cfg.budget_limit)
 
-    async with KisRestClient() as client:
+    auth = TokenManager()
+    async with KisRestClient(auth=auth) as client:
         scheduler = AsyncIOScheduler(timezone="Asia/Seoul")
 
         # 장 중 30분마다 매매 사이클 실행 (9:05 ~ 15:20)
