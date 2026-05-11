@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/account", tags=["account"])
 _CACHE_TTL = 60  # 초
 _cache: dict[str, Any] = {}
 _cache_ts: float = 0.0
-_KIS_TIMEOUT = 5.0  # KIS API 타임아웃
+_KIS_TIMEOUT = 12.0  # KIS API 타임아웃 (장 외 시간에 최대 ~9초)
 
 
 async def _fetch_account(order_api: OrderApi) -> dict:
