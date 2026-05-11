@@ -3,13 +3,53 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from dantadanta.api.order import OrderApi
+from dantadanta.engine.order_recorder import record_order
 from web.api.database import get_session
+from web.api.deps import get_order_api
 from web.api.models import OrderRecord
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
+
+
+class OrderRequest(BaseModel):
+    symbol: str
+    qty: int
+    price: int = 0  # 0 = 시장가
+
+
+@router.post("/buy")
+async def manual_buy(
+    body: OrderRequest,
+    order_api: OrderApi = Depends(get_order_api),
+    session: Session = Depends(get_session),
+):
+    try:
+        result = await order_api.buy(body.symbol.upper(), body.qty, body.price)
+        record_order(order_no=result.order_no, symbol=body.symbol.upper(),
+                     side="buy", qty=body.qty, price=body.price, reason="웹 수동주문")
+        return {"order_no": result.order_no, "status": "ok"}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/sell")
+async def manual_sell(
+    body: OrderRequest,
+    order_api: OrderApi = Depends(get_order_api),
+    session: Session = Depends(get_session),
+):
+    try:
+        result = await order_api.sell(body.symbol.upper(), body.qty, body.price)
+        record_order(order_no=result.order_no, symbol=body.symbol.upper(),
+                     side="sell", qty=body.qty, price=body.price, reason="웹 수동주문")
+        return {"order_no": result.order_no, "status": "ok"}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get("")

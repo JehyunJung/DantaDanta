@@ -1,4 +1,5 @@
 import { apiFetch, Position } from "@/lib/api";
+import SellButton from "@/components/SellButton";
 
 function fmt(n: number) { return n.toLocaleString("ko-KR"); }
 
@@ -76,6 +77,7 @@ export default async function Positions() {
                   <th className="text-right py-2">평가금액</th>
                   <th className="text-right py-2">손익</th>
                   <th className="text-right py-2">수익률</th>
+                  <th className="py-2"></th>
                 </tr>
               </thead>
               <tbody>
@@ -90,6 +92,7 @@ export default async function Positions() {
                       <td className="py-2 text-right">{fmt(p.amount)}</td>
                       <td className={`py-2 text-right font-medium ${isPos ? "text-red-400" : "text-blue-400"}`}>{isPos ? "+" : ""}{fmt(p.pnl_amount)}</td>
                       <td className={`py-2 text-right font-medium ${isPos ? "text-red-400" : "text-blue-400"}`}>{isPos ? "+" : ""}{p.pnl_rate.toFixed(2)}%</td>
+                      <td className="py-2 text-right"><SellButton symbol={p.symbol} qty={p.qty} /></td>
                     </tr>
                   );
                 })}

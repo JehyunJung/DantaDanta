@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/", label: "대시보드", icon: "📊" },
   { href: "/positions", label: "보유 종목", icon: "💼" },
+  { href: "/trade", label: "수동 주문", icon: "🛒" },
   { href: "/chart", label: "차트", icon: "📈" },
   { href: "/orders", label: "주문내역", icon: "📋" },
   { href: "/screener", label: "스크리너", icon: "🔍" },
