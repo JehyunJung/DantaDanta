@@ -1,5 +1,6 @@
 """KIS 시세/차트 데이터 조회."""
 
+import logging
 from datetime import date
 
 import httpx
@@ -8,6 +9,8 @@ import pandas as pd
 from dantadanta.api.auth import TokenManager
 from dantadanta.api.rest import KisRestClient
 from dantadanta.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 _PRICE_PATH        = "/uapi/domestic-stock/v1/quotations/inquire-price"
 _DAILY_CHART_PATH  = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
