@@ -210,7 +210,7 @@ MAX_POSITION_RATIO=0.2
 
 # 개별 실행
 uv run python -m dantadanta          # 트레이딩 봇
-uv run uvicorn web.api.main:app --reload --port 8000  # API 서버
+uv run uvicorn web.api.main:app --port 8000  # API 서버
 cd web/frontend && npm run dev        # 프론트엔드
 ```
 
