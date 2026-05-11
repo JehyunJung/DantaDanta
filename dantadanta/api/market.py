@@ -220,3 +220,36 @@ class MarketApi:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
         return df.reset_index(drop=True)
+
+    async def collect_hourly_bars(self, symbol: str) -> int:
+        """분봉을 수집해 완료된 시간봉을 bar_store에 적재. 추가된 봉 수 반환."""
+        from datetime import datetime
+        from dantadanta.engine.bar_store import save_bars
+
+        now = datetime.now()
+        df = await self.get_minute_chart(symbol, hour=now.strftime("%H%M%S"))
+        if df.empty or "time" not in df.columns:
+            return 0
+
+        today = now.strftime("%Y%m%d")
+        df["dt"] = pd.to_datetime(
+            today + df["time"].astype(str).str.zfill(6), format="%Y%m%d%H%M%S"
+        )
+        df = df.set_index("dt").sort_index()
+
+        hourly = df.resample("1h").agg(
+            open=("open", "first"),
+            high=("high", "max"),
+            low=("low", "min"),
+            close=("close", "last"),
+            volume=("volume", "sum"),
+        ).dropna(subset=["close"])
+
+        # 현재 진행 중인 봉은 제외 (완료된 봉만)
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        hourly = hourly[hourly.index < current_hour]
+        if hourly.empty:
+            return 0
+
+        hourly = hourly.reset_index().rename(columns={"dt": "dt"})
+        return save_bars(symbol, hourly)

@@ -109,9 +109,15 @@ class Trader:
             is_domestic = market == "KRX"
 
             try:
-                # 차트 데이터 조회
+                # 차트 데이터 조회 — KRX는 시간봉 우선, 부족하면 일봉 fallback
                 if is_domestic:
-                    df = await self._market.get_daily_chart(symbol, start, end)
+                    from dantadanta.engine.bar_store import load_bars, bar_count, MIN_BARS
+                    if bar_count(symbol) >= MIN_BARS:
+                        df = load_bars(symbol)
+                        logger.debug("시간봉 사용 | {} ({}봉)", symbol, len(df))
+                    else:
+                        df = await self._market.get_daily_chart(symbol, start, end)
+                        logger.debug("일봉 fallback | {} (시간봉 {}봉 적립 중)", symbol, bar_count(symbol))
                 else:
                     df = await self._market.get_overseas_chart(symbol, market, end)
 

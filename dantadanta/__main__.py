@@ -86,6 +86,21 @@ async def _us_trade_job(client: KisRestClient) -> None:
         await notify_error("미장 매매 사이클", str(exc))
 
 
+async def _collect_bars_job(client: KisRestClient) -> None:
+    """매 15분마다 KRX 분봉 수집 → 시간봉 적재."""
+    market_api = MarketApi(client)
+    symbols = _load_universe(market="KRX")
+    added = 0
+    for symbol in symbols:
+        try:
+            n = await market_api.collect_hourly_bars(symbol)
+            added += n
+        except Exception:
+            pass
+    if added:
+        logger.info("시간봉 적재 완료 | {}개 봉 추가", added)
+
+
 async def _screen_job(client: KisRestClient, market: str) -> None:
     """스크리너 캐시 프리워밍 — 웹 페이지가 항상 캐시를 히트하도록."""
     try:
@@ -177,6 +192,13 @@ async def main() -> None:
             hour="23,0,1,2,3,4,5",
             minute="5,20,35,50",
             id="us_trade_cycle",
+        )
+
+        # KRX 시간봉 수집 (매매 사이클과 동일 시간)
+        scheduler.add_job(
+            _collect_bars_job, "cron", args=[client],
+            day_of_week="mon-fri", hour="9-15", minute="5,20,35,50",
+            id="bar_collect",
         )
 
         # 국장 스크리너 프리워밍 — 장전 2회(08:30, 08:50) + 장중 30분 간격(09:00~15:00)
