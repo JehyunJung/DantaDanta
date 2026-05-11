@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     kis_account_no: str
     kis_is_mock: bool = True
 
-    # Anthropic
-    anthropic_api_key: str = ""
+    # OpenAI
+    openai_api_key: str = ""
 
     # 매매 설정
     budget_limit: int = 1_000_000
