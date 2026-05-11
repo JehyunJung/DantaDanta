@@ -30,23 +30,26 @@ def _lookup_name(symbol: str, session: Session) -> str:
 
 
 async def _update_filled_price(order_no: str, order_api: OrderApi) -> None:
-    """시장가 주문 체결가를 2초 후 조회해 DB 업데이트."""
-    await asyncio.sleep(2)
-    try:
-        filled = await order_api.get_filled_price(order_no)
-        if filled > 0:
-            from web.api.database import engine
-            with Session(engine) as s:
-                record = s.exec(
-                    select(OrderRecord).where(OrderRecord.order_no == order_no)
-                ).first()
-                if record:
-                    record.price = filled
-                    record.amount = record.qty * filled
-                    s.add(record)
-                    s.commit()
-    except Exception:
-        pass
+    """시장가 주문 체결가 조회 — 2초 후 1차, 안 되면 5초 후 2차 재시도."""
+    from web.api.database import engine
+
+    for delay in (2, 5):
+        await asyncio.sleep(delay)
+        try:
+            filled = await order_api.get_filled_price(order_no)
+            if filled > 0:
+                with Session(engine) as s:
+                    record = s.exec(
+                        select(OrderRecord).where(OrderRecord.order_no == order_no)
+                    ).first()
+                    if record:
+                        record.price = filled
+                        record.amount = record.qty * filled
+                        s.add(record)
+                        s.commit()
+                return
+        except Exception:
+            pass
 
 
 @router.post("/buy")
