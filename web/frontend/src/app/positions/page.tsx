@@ -73,6 +73,7 @@ export default async function Positions() {
                   <th className="text-left py-2">종목</th>
                   <th className="text-right py-2">수량</th>
                   <th className="text-right py-2">평균단가</th>
+                  <th className="text-right py-2">매수금액</th>
                   <th className="text-right py-2">현재가</th>
                   <th className="text-right py-2">평가금액</th>
                   <th className="text-right py-2">손익</th>
@@ -88,6 +89,7 @@ export default async function Positions() {
                       <td className="py-2">{p.name}<span className="text-gray-500 text-xs ml-1">{p.symbol}</span></td>
                       <td className="py-2 text-right">{fmt(p.qty)}</td>
                       <td className="py-2 text-right">{fmt(Math.round(p.avg_price))}</td>
+                      <td className="py-2 text-right">{fmt(Math.round(p.avg_price * p.qty))}</td>
                       <td className="py-2 text-right">{fmt(p.current_price)}</td>
                       <td className="py-2 text-right">{fmt(p.amount)}</td>
                       <td className={`py-2 text-right font-medium ${isPos ? "text-red-400" : "text-blue-400"}`}>{isPos ? "+" : ""}{fmt(p.pnl_amount)}</td>
