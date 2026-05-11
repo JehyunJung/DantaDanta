@@ -37,6 +37,7 @@ async def main() -> None:
             int(price.get("acml_vol", 0)),
         )
 
+        await asyncio.sleep(1)
         logger.info("\n[3] 일봉 차트 조회 — 삼성전자 최근 5일")
         end = date.today()
         start = end - timedelta(days=10)
@@ -45,6 +46,7 @@ async def main() -> None:
             logger.info("조회된 봉 수: {}개", len(df))
             logger.info("\n{}", df[["date", "open", "high", "low", "close", "volume"]].tail(5).to_string(index=False))
 
+        await asyncio.sleep(1)
         logger.info("\n[4] 계좌 잔고 조회")
         account = await order.get_account()
         logger.info("예수금: {:,}원", account.cash)

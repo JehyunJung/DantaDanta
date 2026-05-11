@@ -1,0 +1,20 @@
+[Unit]
+Description=DantaDanta FastAPI Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/DantaDanta
+ExecStart=/home/ubuntu/.local/bin/uv run python -m uvicorn web.api.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/ubuntu/DantaDanta/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dantadanta-api
+
+[Install]
+WantedBy=multi-user.target

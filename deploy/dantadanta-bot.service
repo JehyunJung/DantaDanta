@@ -1,0 +1,21 @@
+[Unit]
+Description=DantaDanta Trading Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/DantaDanta
+ExecStart=/home/ubuntu/.local/bin/uv run python -m dantadanta
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/ubuntu/DantaDanta/.env
+
+# 로그는 journald로 수집
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dantadanta-bot
+
+[Install]
+WantedBy=multi-user.target
