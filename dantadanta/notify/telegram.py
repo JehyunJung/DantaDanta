@@ -155,6 +155,9 @@ async def _handle_command(text: str, order_api) -> str:  # noqa: ANN001
             from dantadanta.engine.order_recorder import record_order
             record_order(order_no=result.order_no, symbol=symbol, side="buy",
                          qty=qty, price=price, reason="텔레그램 수동주문")
+            if price == 0:
+                from dantadanta.engine.order_recorder import update_filled_price
+                asyncio.create_task(update_filled_price(result.order_no, symbol, "buy", order_api))
             return f"✅ <b>매수 주문 완료</b>\n{symbol} {qty}주 @{price_str}\n주문번호: {result.order_no}"
         except Exception as exc:
             return f"❌ 매수 주문 실패\n{exc}"
@@ -184,6 +187,9 @@ async def _handle_command(text: str, order_api) -> str:  # noqa: ANN001
             from dantadanta.engine.order_recorder import record_order
             record_order(order_no=result.order_no, symbol=symbol, side="sell",
                          qty=qty_arg, price=price, reason="텔레그램 수동주문")
+            if price == 0:
+                from dantadanta.engine.order_recorder import update_filled_price
+                asyncio.create_task(update_filled_price(result.order_no, symbol, "sell", order_api))
             return f"✅ <b>매도 주문 완료</b>\n{symbol} {qty_arg}주 @{price_str}\n주문번호: {result.order_no}"
         except Exception as exc:
             return f"❌ 매도 주문 실패\n{exc}"
