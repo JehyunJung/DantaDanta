@@ -36,15 +36,20 @@ class MarketApi:
                 kis_is_mock=False,
             )
             self._real_auth = TokenManager(real_cfg)
+            self._real_app_key = self._cfg.kis_real_app_key
+            self._real_app_secret = self._cfg.kis_real_app_secret
+            logger.info("MarketApi: 실거래 앱키로 해외 시세 설정 완료")
         else:
             self._real_auth = self._c._auth
+            self._real_app_key = self._cfg.kis_app_key
+            self._real_app_secret = self._cfg.kis_app_secret
+            logger.warning("MarketApi: 실거래 앱키 없음 — 모의 앱키로 해외 시세 시도")
 
     async def _ovrs_get(self, path: str, tr_id: str, params: dict) -> dict:
         """해외 시세 조회 — 항상 실서버로 직접 호출 (실서버 토큰 사용)."""
         token = await self._real_auth.get_access_token()
-        # 실거래 앱키가 있으면 헤더도 실거래 앱키로
-        app_key = self._cfg.kis_real_app_key or self._cfg.kis_app_key
-        app_secret = self._cfg.kis_real_app_secret or self._cfg.kis_app_secret
+        app_key = self._real_app_key
+        app_secret = self._real_app_secret
         headers = {
             "content-type": "application/json; charset=utf-8",
             "authorization": f"Bearer {token}",
