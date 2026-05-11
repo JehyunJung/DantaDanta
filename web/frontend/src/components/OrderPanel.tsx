@@ -59,7 +59,7 @@ export default function OrderPanel({ defaultSymbol = "", defaultQty = 1, default
             value={symbol}
             onChange={e => setSymbol(e.target.value.toUpperCase())}
             placeholder="005930"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
           />
         </div>
         <div className="space-y-1">
@@ -69,7 +69,7 @@ export default function OrderPanel({ defaultSymbol = "", defaultQty = 1, default
             value={qty}
             onChange={e => setQty(Number(e.target.value))}
             min={1}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
           />
         </div>
         <div className="space-y-1">
@@ -79,7 +79,7 @@ export default function OrderPanel({ defaultSymbol = "", defaultQty = 1, default
             value={price}
             onChange={e => setPrice(Number(e.target.value))}
             min={0}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gray-500"
           />
         </div>
       </div>

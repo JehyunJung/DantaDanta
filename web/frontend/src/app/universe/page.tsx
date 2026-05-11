@@ -111,7 +111,7 @@ export default function UniversePage() {
       <div className="flex gap-2 items-center flex-wrap">
         <select
           value={market} onChange={(e) => setMarket(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
         >
           {MARKETS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
         </select>
@@ -120,7 +120,7 @@ export default function UniversePage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
           placeholder={market === "KRX" ? "종목코드 (예: 005930)" : "티커 (예: AAPL)"}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:border-green-500"
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white w-44 focus:outline-none focus:border-green-500"
         />
         <button onClick={add} disabled={loading}
           className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg">
@@ -134,15 +134,15 @@ export default function UniversePage() {
         <input
           type="text" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="종목명 / 코드 검색"
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:border-green-500"
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white w-48 focus:outline-none focus:border-green-500"
         />
         <select value={filterMarket} onChange={(e) => setFilterMarket(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-green-500">
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-green-500">
           <option value="ALL">전체 시장</option>
           {MARKETS.map((m) => <option key={m.value} value={m.value}>{m.value}</option>)}
         </select>
         <select value={filterSector} onChange={(e) => setFilterSector(e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-green-500">
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-green-500">
           {sectors.map((s) => <option key={s} value={s}>{s === "ALL" ? "전체 섹터" : s}</option>)}
         </select>
         <span className="text-xs text-gray-500 ml-auto">{filtered.length} / {items.length}개</span>
