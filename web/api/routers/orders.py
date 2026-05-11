@@ -22,6 +22,12 @@ class OrderRequest(BaseModel):
     price: int = 0  # 0 = 시장가
 
 
+def _lookup_name(symbol: str, session: Session) -> str:
+    from web.api.models import UniverseSymbol
+    row = session.get(UniverseSymbol, symbol)
+    return row.name if row and row.name else ""
+
+
 @router.post("/buy")
 async def manual_buy(
     body: OrderRequest,
@@ -31,7 +37,8 @@ async def manual_buy(
     try:
         result = await order_api.buy(body.symbol.upper(), body.qty, body.price)
         record_order(order_no=result.order_no, symbol=body.symbol.upper(),
-                     side="buy", qty=body.qty, price=body.price, reason="웹 수동주문")
+                     side="buy", qty=body.qty, price=body.price,
+                     name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -46,7 +53,8 @@ async def manual_sell(
     try:
         result = await order_api.sell(body.symbol.upper(), body.qty, body.price)
         record_order(order_no=result.order_no, symbol=body.symbol.upper(),
-                     side="sell", qty=body.qty, price=body.price, reason="웹 수동주문")
+                     side="sell", qty=body.qty, price=body.price,
+                     name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))

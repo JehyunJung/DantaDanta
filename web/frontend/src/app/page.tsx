@@ -48,7 +48,7 @@ export default async function Dashboard() {
                   <td className="py-2">{o.name || o.symbol}</td>
                   <td className={`py-2 font-medium ${o.side === "buy" ? "text-red-400" : "text-blue-400"}`}>{o.side === "buy" ? "매수" : "매도"}</td>
                   <td className="py-2 text-right">{fmt(o.qty)}주</td>
-                  <td className="py-2 text-right">{fmt(o.price)}원</td>
+                  <td className="py-2 text-right">{o.price > 0 ? `${fmt(o.price)}원` : "시장가"}</td>
                   <td className="py-2 text-gray-400 text-xs">{o.reason}</td>
                 </tr>
               ))}
