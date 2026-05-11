@@ -12,7 +12,8 @@ from dantadanta.analysis.news import get_news_sentiment
 from dantadanta.api.market import MarketApi
 from dantadanta.engine.price_cache import PriceCache
 
-_CONCURRENCY = 2     # 동시 API 호출 수 (KIS rate limit 고려)
+_CONCURRENCY = 1     # 동시 API 호출 수 (KIS rate limit 고려)
+_OVRS_DELAY  = 0.6   # 해외 API 호출 간격 (초당 1건 제한 대응)
 _CACHE_TTL   = 300   # 캐시 유효 시간(초)
 _NEWS_WEIGHT = 0.2   # 뉴스 감성 가중치 (최대 ±20점)
 
@@ -56,6 +57,7 @@ async def _screen_one(
                 df = await market_api.get_daily_chart(symbol, start, end)
             else:
                 df = await market_api.get_overseas_chart(symbol, market, end)
+                await asyncio.sleep(_OVRS_DELAY)
 
             if df.empty or len(df) < 60:
                 return None
