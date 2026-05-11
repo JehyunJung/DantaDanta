@@ -3,7 +3,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "SagoPalgo",
+  title: "DantaDanta",
   description: "자동 주식 트레이딩 대시보드",
 };
 

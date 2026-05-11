@@ -8,7 +8,7 @@ export default async function Positions() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">포지션</h1>
+      <h1 className="text-2xl font-bold">보유 종목</h1>
 
       {positions.length === 0 ? (
         <p className="text-gray-500">보유 종목이 없습니다.</p>

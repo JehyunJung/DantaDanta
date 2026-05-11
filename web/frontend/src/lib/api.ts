@@ -1,7 +1,7 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { cache: "no-store", ...init });
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
   return res.json();
 }
@@ -49,14 +49,23 @@ export interface Candle {
 export interface ChartData {
   symbol: string;
   candles: Candle[];
-  indicators: {
+  indicators: Partial<{
     ema5: { time: string; value: number }[];
     ema20: { time: string; value: number }[];
     ema60: { time: string; value: number }[];
     bb_upper: { time: string; value: number }[];
     bb_lower: { time: string; value: number }[];
     rsi: { time: string; value: number }[];
-  };
+  }>;
+}
+
+export interface UniverseItem {
+  symbol: string;
+  name: string;
+  market: string;
+  sector: string;
+  screen: boolean;
+  added_at: string;
 }
 
 export interface ScreenerItem {
@@ -65,4 +74,6 @@ export interface ScreenerItem {
   score: number;
   current_price: number;
   rsi: number | null;
+  news_score: number;
+  news_summary: string;
 }
