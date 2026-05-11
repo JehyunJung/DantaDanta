@@ -75,18 +75,20 @@ class MaCrossStrategy(BaseStrategy):
         if any(v is None for v in [ema_fast_last, ema_slow_last, ema_fast_prev, ema_slow_prev]):
             return TradeSignal(signal=Signal.HOLD, symbol=symbol, reason="지표 없음")
 
+        in_uptrend   = ema_fast_last > ema_slow_last
         golden_cross = ema_fast_prev <= ema_slow_prev and ema_fast_last > ema_slow_last
         dead_cross   = ema_fast_prev >= ema_slow_prev and ema_fast_last < ema_slow_last
 
         # ── 매수 판단 ──────────────────────────────────────────
-        if golden_cross:
+        # 골든크로스(전환 순간) 또는 이미 상승 추세인 종목 모두 허용
+        if in_uptrend:
             # RSI 필터: 과매도~중립 구간만 허용
             rsi_ok = rsi is None or (self._rsi_low <= rsi <= self._rsi_high)
             if not rsi_ok:
                 return TradeSignal(signal=Signal.HOLD, symbol=symbol,
                                    reason=f"RSI 범위 밖 ({rsi:.1f})" if rsi else "RSI 없음")
 
-            # MACD 확인: 음→양 전환 / 양수 / 방향이 상승 중이면 모두 OK
+            # MACD 확인: 음→양 전환 / 양수 / 방향이 상승 중이면 OK
             macd_turning = (hist_prev is not None and hist_last is not None
                             and hist_prev < 0 and hist_last >= 0)
             macd_rising = (hist_prev is not None and hist_last is not None
@@ -94,17 +96,17 @@ class MaCrossStrategy(BaseStrategy):
             macd_positive = hist_last is not None and hist_last > 0
 
             if hist_last is not None and not macd_rising and not macd_positive:
-                # 히스토그램이 음수이면서 하락 중이면 매수 보류
                 return TradeSignal(signal=Signal.HOLD, symbol=symbol,
                                    reason=f"MACD 하락 중 ({hist_last:.3f})")
 
-            confidence = 0.9 if macd_turning else (0.8 if macd_positive else 0.65)
+            confidence = 0.9 if golden_cross else (0.8 if macd_turning else (0.75 if macd_positive else 0.65))
             rsi_str = f" RSI={rsi:.0f}" if rsi else ""
+            tag = "골든크로스" if golden_cross else "상승추세"
             macd_str = " MACD↑" if macd_turning else (" MACD+" if macd_positive else " MACD↗")
             return TradeSignal(
                 signal=Signal.BUY,
                 symbol=symbol,
-                reason=f"골든크로스{macd_str}{rsi_str}",
+                reason=f"{tag}{macd_str}{rsi_str}",
                 confidence=confidence,
             )
 
