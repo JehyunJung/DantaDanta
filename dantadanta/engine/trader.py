@@ -21,14 +21,14 @@ def _load_trade_config() -> dict:
             cfg = get_config(s)
         return {
             "sl_rate":       -float(cfg.get("swing_sl_rate", 5.0)) / 100,
-            "tp_rate":        float(cfg.get("swing_tp_rate", 10.0)) / 100,
+            "tp_rate":        float(cfg.get("swing_tp_rate", 5.0)) / 100,
             "news_enabled":   cfg.get("news_enabled", "true") == "true",
             "news_threshold": float(cfg.get("news_threshold", -0.3)),
             "budget_limit":   int(cfg.get("budget_limit", 1_000_000)),
             "max_pos_ratio":  float(cfg.get("max_position_ratio", 0.2)),
         }
     except Exception:
-        return {"sl_rate": -0.05, "tp_rate": 0.10, "news_enabled": True,
+        return {"sl_rate": -0.05, "tp_rate": 0.05, "news_enabled": True,
                 "news_threshold": -0.3, "budget_limit": 1_000_000, "max_pos_ratio": 0.2}
 
 

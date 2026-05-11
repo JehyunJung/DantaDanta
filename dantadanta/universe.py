@@ -21,9 +21,11 @@ KRX_UNIVERSE: list[StockInfo] = [
     # 인터넷/플랫폼
     {"symbol": "035420", "name": "NAVER",          "market": "KRX", "sector": "인터넷/플랫폼"},
     {"symbol": "035720", "name": "카카오",         "market": "KRX", "sector": "인터넷/플랫폼"},
-    {"symbol": "293490", "name": "카카오뱅크",     "market": "KRX", "sector": "인터넷/플랫폼"},
+    {"symbol": "323410", "name": "카카오뱅크",     "market": "KRX", "sector": "인터넷/플랫폼"},
+    {"symbol": "293490", "name": "카카오게임즈",   "market": "KRX", "sector": "인터넷/플랫폼"},
     {"symbol": "259960", "name": "크래프톤",       "market": "KRX", "sector": "인터넷/플랫폼"},
     {"symbol": "036570", "name": "엔씨소프트",     "market": "KRX", "sector": "인터넷/플랫폼"},
+    {"symbol": "263750", "name": "펄어비스",       "market": "KRX", "sector": "인터넷/플랫폼"},
     # 자동차
     {"symbol": "005380", "name": "현대차",         "market": "KRX", "sector": "자동차"},
     {"symbol": "000270", "name": "기아",           "market": "KRX", "sector": "자동차"},
@@ -33,11 +35,21 @@ KRX_UNIVERSE: list[StockInfo] = [
     {"symbol": "006400", "name": "삼성SDI",        "market": "KRX", "sector": "배터리/화학"},
     {"symbol": "096770", "name": "SK이노베이션",   "market": "KRX", "sector": "배터리/화학"},
     {"symbol": "011170", "name": "롯데케미칼",     "market": "KRX", "sector": "배터리/화학"},
+    # 2차전지 중소형 (고변동성)
+    {"symbol": "247540", "name": "에코프로비엠",   "market": "KRX", "sector": "2차전지"},
+    {"symbol": "086520", "name": "에코프로",       "market": "KRX", "sector": "2차전지"},
+    {"symbol": "003670", "name": "포스코퓨처엠",   "market": "KRX", "sector": "2차전지"},
+    {"symbol": "066970", "name": "엘앤에프",       "market": "KRX", "sector": "2차전지"},
+    # 로봇 (고변동성)
+    {"symbol": "454910", "name": "두산로보틱스",   "market": "KRX", "sector": "로봇"},
+    {"symbol": "277810", "name": "레인보우로보틱스","market": "KRX", "sector": "로봇"},
     # 바이오/제약
     {"symbol": "207940", "name": "삼성바이오로직스","market": "KRX", "sector": "바이오/제약"},
     {"symbol": "068270", "name": "셀트리온",       "market": "KRX", "sector": "바이오/제약"},
     {"symbol": "000100", "name": "유한양행",       "market": "KRX", "sector": "바이오/제약"},
     {"symbol": "326030", "name": "SK바이오팜",     "market": "KRX", "sector": "바이오/제약"},
+    {"symbol": "028300", "name": "HLB",            "market": "KRX", "sector": "바이오/제약"},
+    {"symbol": "196170", "name": "알테오젠",       "market": "KRX", "sector": "바이오/제약"},
     # 금융
     {"symbol": "105560", "name": "KB금융",         "market": "KRX", "sector": "금융"},
     {"symbol": "055550", "name": "신한지주",       "market": "KRX", "sector": "금융"},

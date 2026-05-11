@@ -53,6 +53,10 @@ async def lifespan(app: FastAPI):
             set_config_value(session, "budget_limit", str(cfg.budget_limit))
         if not session.get(AppConfig, "max_position_ratio"):
             set_config_value(session, "max_position_ratio", str(cfg.max_position_ratio))
+        if not session.get(AppConfig, "swing_tp_rate"):
+            set_config_value(session, "swing_tp_rate", "5.0")
+        if not session.get(AppConfig, "swing_sl_rate"):
+            set_config_value(session, "swing_sl_rate", "5.0")
 
     client = KisRestClient()
     await client.__aenter__()
