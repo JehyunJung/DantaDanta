@@ -86,6 +86,34 @@ async def _us_trade_job(client: KisRestClient) -> None:
         await notify_error("미장 매매 사이클", str(exc))
 
 
+async def _screen_job(client: KisRestClient, market: str) -> None:
+    """스크리너 캐시 프리워밍 — 웹 페이지가 항상 캐시를 히트하도록."""
+    try:
+        from sqlmodel import Session, create_engine, select
+        from web.api.models import UniverseSymbol
+        from dantadanta.analysis.screener import screen
+
+        engine = create_engine("sqlite:///./dantadanta.db", connect_args={"check_same_thread": False})
+        with Session(engine) as s:
+            rows = s.exec(select(UniverseSymbol).where(UniverseSymbol.screen == True)).all()  # noqa: E712
+
+        if market == "KRX":
+            rows = [r for r in rows if r.market == "KRX"]
+        else:
+            rows = [r for r in rows if r.market != "KRX"]
+
+        symbols = [r.symbol for r in rows]
+        names   = {r.symbol: r.name   for r in rows}
+        markets = {r.symbol: r.market for r in rows}
+
+        market_api = MarketApi(client)
+        logger.info("스크리너 프리워밍 시작 [{}] | {}개 종목", market, len(symbols))
+        await screen(symbols, market_api, min_score=0.0, names=names, markets=markets)
+        logger.info("스크리너 프리워밍 완료 [{}]", market)
+    except Exception as exc:
+        logger.error("스크리너 프리워밍 오류 [{}]: {}", market, exc)
+
+
 async def _summary_job(client: KisRestClient) -> None:
     try:
         order_api = OrderApi(client)
@@ -149,6 +177,26 @@ async def main() -> None:
             hour="23,0,1,2,3,4,5",
             minute="5,20,35,50",
             id="us_trade_cycle",
+        )
+
+        # 국장 스크리너 프리워밍 — 장전 2회(08:30, 08:50) + 장중 30분 간격(09:00~15:00)
+        scheduler.add_job(
+            _screen_job, "cron", args=[client, "KRX"],
+            day_of_week="mon-fri", hour="8",  minute="30,50", id="krx_screen_pre",
+        )
+        scheduler.add_job(
+            _screen_job, "cron", args=[client, "KRX"],
+            day_of_week="mon-fri", hour="9-15", minute="0,30", id="krx_screen",
+        )
+
+        # 미장 스크리너 프리워밍 — 장전 2회(22:30, 22:50) + 장중 30분 간격(23:00~05:00)
+        scheduler.add_job(
+            _screen_job, "cron", args=[client, "US"],
+            day_of_week="mon-fri", hour="22", minute="30,50", id="us_screen_pre",
+        )
+        scheduler.add_job(
+            _screen_job, "cron", args=[client, "US"],
+            day_of_week="mon-fri", hour="23,0,1,2,3,4,5", minute="0,30", id="us_screen",
         )
 
         scheduler.start()

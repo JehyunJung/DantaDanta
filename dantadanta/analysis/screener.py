@@ -14,7 +14,7 @@ from dantadanta.engine.price_cache import PriceCache
 
 _CONCURRENCY = 1     # 동시 API 호출 수 (KIS rate limit 고려)
 _OVRS_DELAY  = 0.6   # 해외 API 호출 간격 (초당 1건 제한 대응)
-_CACHE_TTL   = 300   # 캐시 유효 시간(초)
+_CACHE_TTL   = 2100  # 캐시 유효 시간(초) — 35분 (스케줄러 30분 주기보다 여유)
 _NEWS_WEIGHT = 0.2   # 뉴스 감성 가중치 (최대 ±20점)
 
 # 시장별 캐시 분리
