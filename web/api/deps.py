@@ -3,6 +3,7 @@
 from dantadanta.api.market import MarketApi
 from dantadanta.api.order import OrderApi
 from dantadanta.api.rest import KisRestClient
+from dantadanta.engine.price_cache import PriceCache, get_price_cache
 
 # 앱 전체에서 하나의 클라이언트 공유
 _client: KisRestClient | None = None
@@ -24,3 +25,7 @@ def get_order_api() -> OrderApi:
 def set_client(client: KisRestClient) -> None:
     global _client
     _client = client
+
+
+def get_cache() -> PriceCache:
+    return get_price_cache()
