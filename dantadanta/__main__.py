@@ -133,7 +133,7 @@ async def _summary_job(client: KisRestClient) -> None:
     try:
         order_api = OrderApi(client)
         account = await order_api.get_account()
-        await notify_summary(account.cash, account.total_eval, len(account.holdings))
+        await notify_summary(account.net_asset, account.stocks_eval, account.pnl_amount, len(account.holdings))
     except Exception as exc:
         logger.error("요약 알림 오류: {}", exc)
 

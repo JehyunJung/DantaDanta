@@ -73,11 +73,12 @@ class Trader:
                     self._strategy.name, abs(sl_rate) * 100, tp_rate * 100)
 
         account = await self._order.get_account()
-        logger.info("계좌 현황 | 예수금={:,}원 / 총평가={:,}원 / 보유종목={}개",
-                    account.cash, account.total_eval, len(account.holdings))
+        cash = account.net_asset - account.stocks_eval  # 실제 가용 현금
+        logger.info("계좌 현황 | 순자산={:,}원 / 주식평가={:,}원 / 가용현금={:,}원 / 보유종목={}개",
+                    account.net_asset, account.stocks_eval, cash, len(account.holdings))
 
         # 실제 잔고로 예산 동기화
-        self._budget.sync(account.cash)
+        self._budget.sync(cash)
 
         # 1. 보유 종목 손절/익절 체크
         for h in account.holdings:

@@ -196,7 +196,8 @@ class Scalper:
 
                 # 예수금 확인 후 진입
                 account = await self._order.get_account()
-                use_amount = min(invest, account.cash // (max_pos + 1))
+                avail_cash = account.net_asset - account.stocks_eval
+                use_amount = min(invest, avail_cash // (max_pos + 1))
                 qty = use_amount // int(current)
                 if qty <= 0:
                     continue

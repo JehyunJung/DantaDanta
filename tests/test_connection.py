@@ -49,8 +49,9 @@ async def main() -> None:
         await asyncio.sleep(1)
         logger.info("\n[4] 계좌 잔고 조회")
         account = await order.get_account()
-        logger.info("예수금: {:,}원", account.cash)
-        logger.info("총평가: {:,}원", account.total_eval)
+        logger.info("순자산: {:,}원", account.net_asset)
+        logger.info("주식평가: {:,}원", account.stocks_eval)
+        logger.info("가용현금: {:,}원", account.net_asset - account.stocks_eval)
         logger.info("보유종목: {}개", len(account.holdings))
         for h in account.holdings:
             logger.info(

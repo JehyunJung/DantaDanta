@@ -47,11 +47,13 @@ async def notify_error(context: str, error: str) -> None:
     await send(f"⚠️ <b>오류 발생</b>\n{context}\n{error}")
 
 
-async def notify_summary(cash: int, total_eval: int, holdings_count: int) -> None:
+async def notify_summary(net_asset: int, stocks_eval: int, pnl_amount: int, holdings_count: int) -> None:
+    sign = "+" if pnl_amount >= 0 else ""
     msg = (
         f"📈 <b>일간 요약</b>\n"
-        f"예수금: {cash:,}원\n"
-        f"총평가: {total_eval:,}원\n"
+        f"순자산: {net_asset:,}원\n"
+        f"주식평가: {stocks_eval:,}원\n"
+        f"평가손익: {sign}{pnl_amount:,}원\n"
         f"보유종목: {holdings_count}개"
     )
     await send(msg)
@@ -87,14 +89,15 @@ async def _handle_command(text: str, order_api) -> str:  # noqa: ANN001
     # ── 상태 조회 ──
     if cmd == "/status":
         account = await order_api.get_account()
-        pnl = account.total_eval - account.cash
-        sign = "+" if pnl >= 0 else ""
+        cash = account.net_asset - account.stocks_eval
+        sign = "+" if account.pnl_amount >= 0 else ""
         paused_str = " (일시정지 중)" if state.is_paused() else ""
         return (
             f"📊 <b>현재 상태{paused_str}</b>\n"
-            f"예수금: {account.cash:,}원\n"
-            f"총평가: {account.total_eval:,}원\n"
-            f"평가손익: {sign}{pnl:,}원\n"
+            f"순자산: {account.net_asset:,}원\n"
+            f"가용현금: {cash:,}원\n"
+            f"주식평가: {account.stocks_eval:,}원\n"
+            f"평가손익: {sign}{account.pnl_amount:,}원\n"
             f"보유종목: {len(account.holdings)}개"
         )
 
