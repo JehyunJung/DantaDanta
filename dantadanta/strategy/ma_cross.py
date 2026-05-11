@@ -86,14 +86,21 @@ class MaCrossStrategy(BaseStrategy):
                 return TradeSignal(signal=Signal.HOLD, symbol=symbol,
                                    reason=f"RSI 범위 밖 ({rsi:.1f})" if rsi else "RSI 없음")
 
-            # MACD 확인: 히스토그램 음→양 전환 or 양수
-            macd_ok = hist_last is None or (hist_last > 0)
+            # MACD 확인: 음→양 전환 / 양수 / 방향이 상승 중이면 모두 OK
             macd_turning = (hist_prev is not None and hist_last is not None
                             and hist_prev < 0 and hist_last >= 0)
+            macd_rising = (hist_prev is not None and hist_last is not None
+                           and hist_last > hist_prev)
+            macd_positive = hist_last is not None and hist_last > 0
 
-            confidence = 0.9 if macd_turning else (0.7 if macd_ok else 0.5)
+            if hist_last is not None and not macd_rising and not macd_positive:
+                # 히스토그램이 음수이면서 하락 중이면 매수 보류
+                return TradeSignal(signal=Signal.HOLD, symbol=symbol,
+                                   reason=f"MACD 하락 중 ({hist_last:.3f})")
+
+            confidence = 0.9 if macd_turning else (0.8 if macd_positive else 0.65)
             rsi_str = f" RSI={rsi:.0f}" if rsi else ""
-            macd_str = " MACD↑" if macd_turning else ""
+            macd_str = " MACD↑" if macd_turning else (" MACD+" if macd_positive else " MACD↗")
             return TradeSignal(
                 signal=Signal.BUY,
                 symbol=symbol,
