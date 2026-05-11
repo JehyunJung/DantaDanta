@@ -1,10 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { apiFetch, Position } from "@/lib/api";
 import SellButton from "@/components/SellButton";
 
 function fmt(n: number) { return n.toLocaleString("ko-KR"); }
 
-export default async function Positions() {
-  const positions = await apiFetch<Position[]>("/api/account/positions").catch(() => []);
+const COLORS = ["bg-green-500","bg-blue-500","bg-yellow-500","bg-purple-500","bg-pink-500","bg-orange-500","bg-teal-500","bg-red-500","bg-indigo-500","bg-cyan-500"];
+
+function Skeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 w-32 bg-gray-800 rounded" />
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-6 bg-gray-800 rounded" />
+        ))}
+      </div>
+      <div className="h-4 bg-gray-800 rounded" />
+      <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-12 bg-gray-800 rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Positions() {
+  const [positions, setPositions] = useState<Position[] | null>(null);
+
+  useEffect(() => {
+    apiFetch<Position[]>("/api/account/positions")
+      .then(setPositions)
+      .catch(() => setPositions([]));
+  }, []);
+
+  if (positions === null) return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">보유 종목</h1>
+      <Skeleton />
+    </div>
+  );
+
   const total = positions.reduce((s, p) => s + p.amount, 0);
 
   return (
@@ -15,7 +53,6 @@ export default async function Positions() {
         <p className="text-gray-500">보유 종목이 없습니다.</p>
       ) : (
         <>
-          {/* 수익률 바 차트 */}
           <section>
             <h2 className="text-lg font-semibold mb-3">종목별 수익률</h2>
             <div className="space-y-2">
@@ -26,10 +63,7 @@ export default async function Positions() {
                   <div key={p.symbol} className="flex items-center gap-3 text-sm">
                     <span className="w-28 truncate text-gray-300">{p.name}</span>
                     <div className="flex-1 bg-gray-800 rounded-full h-4 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${isPos ? "bg-red-500" : "bg-blue-500"}`}
-                        style={{ width: `${width}%` }}
-                      />
+                      <div className={`h-full rounded-full ${isPos ? "bg-red-500" : "bg-blue-500"}`} style={{ width: `${width}%` }} />
                     </div>
                     <span className={`w-16 text-right font-medium ${isPos ? "text-red-400" : "text-blue-400"}`}>
                       {isPos ? "+" : ""}{p.pnl_rate.toFixed(2)}%
@@ -40,31 +74,23 @@ export default async function Positions() {
             </div>
           </section>
 
-          {/* 종목 비중 */}
           <section>
             <h2 className="text-lg font-semibold mb-3">포트폴리오 비중</h2>
             <div className="flex gap-1 h-4 rounded-full overflow-hidden">
-              {positions.map((p, i) => {
-                const colors = ["bg-green-500","bg-blue-500","bg-yellow-500","bg-purple-500","bg-pink-500","bg-orange-500","bg-teal-500","bg-red-500","bg-indigo-500","bg-cyan-500"];
-                return (
-                  <div key={p.symbol} title={p.name} className={`${colors[i % colors.length]}`} style={{ width: `${(p.amount / total) * 100}%` }} />
-                );
-              })}
+              {positions.map((p, i) => (
+                <div key={p.symbol} title={p.name} className={COLORS[i % COLORS.length]} style={{ width: `${(p.amount / total) * 100}%` }} />
+              ))}
             </div>
             <div className="flex flex-wrap gap-3 mt-2">
-              {positions.map((p, i) => {
-                const colors = ["bg-green-500","bg-blue-500","bg-yellow-500","bg-purple-500","bg-pink-500","bg-orange-500","bg-teal-500","bg-red-500","bg-indigo-500","bg-cyan-500"];
-                return (
-                  <span key={p.symbol} className="flex items-center gap-1 text-xs text-gray-400">
-                    <span className={`w-2 h-2 rounded-full ${colors[i % colors.length]}`} />
-                    {p.name} {((p.amount / total) * 100).toFixed(1)}%
-                  </span>
-                );
-              })}
+              {positions.map((p, i) => (
+                <span key={p.symbol} className="flex items-center gap-1 text-xs text-gray-400">
+                  <span className={`w-2 h-2 rounded-full ${COLORS[i % COLORS.length]}`} />
+                  {p.name} {((p.amount / total) * 100).toFixed(1)}%
+                </span>
+              ))}
             </div>
           </section>
 
-          {/* 상세 테이블 */}
           <section>
             <h2 className="text-lg font-semibold mb-3">보유 종목 상세</h2>
             <table className="w-full text-sm">

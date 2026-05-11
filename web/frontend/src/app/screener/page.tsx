@@ -1,17 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ScreenerItem } from "@/lib/api";
 
 function fmt(n: number) { return n.toLocaleString("ko-KR"); }
 
-export default async function Screener() {
-  const items = await apiFetch<ScreenerItem[]>("/api/screener").catch(() => []);
+function Skeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="h-20 bg-gray-900 border border-gray-800 rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export default function Screener() {
+  const [items, setItems] = useState<ScreenerItem[] | null>(null);
+
+  useEffect(() => {
+    apiFetch<ScreenerItem[]>("/api/screener")
+      .then(setItems)
+      .catch(() => setItems([]));
+  }, []);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">스크리너</h1>
       <p className="text-sm text-gray-400">기술적 지표 + 뉴스 감성 기반 매수 매력도 점수 (0~120)</p>
 
-      {items.length === 0 ? (
+      {items === null ? (
+        <Skeleton />
+      ) : items.length === 0 ? (
         <p className="text-gray-500">스크리닝 결과가 없습니다.</p>
       ) : (
         <div className="space-y-3">
