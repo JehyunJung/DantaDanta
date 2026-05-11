@@ -33,13 +33,23 @@ async def send(message: str) -> bool:
 
 
 async def notify_order(side: str, symbol: str, qty: int, price: int, reason: str) -> None:
-    side_kr = "매수" if side == "buy" else "매도"
+    """봇 자동매매 체결 알림."""
+    side_kr = "🔴 매수" if side == "buy" else "🔵 매도"
+    price_str = f"{price:,}원" if price else "시장가"
     msg = (
         f"📊 <b>{side_kr} 체결</b>\n"
         f"종목: {symbol}\n"
-        f"수량: {qty:,}주 / 단가: {price:,}원\n"
+        f"수량: {qty:,}주 / 단가: {price_str}\n"
         f"사유: {reason}"
     )
+    await send(msg)
+
+
+async def notify_web_order(side: str, symbol: str, name: str, qty: int, price_str: str) -> None:
+    """웹/텔레그램 수동주문 알림."""
+    label = "🔴 매수" if side == "매수" else "🔵 매도"
+    display = name or symbol
+    msg = f"{label} <b>{display}</b>({symbol})\n{qty}주 @{price_str}\n<i>수동주문</i>"
     await send(msg)
 
 
@@ -56,13 +66,6 @@ async def notify_summary(net_asset: int, stocks_eval: int, pnl_amount: int, hold
         f"평가손익: {sign}{pnl_amount:,}원\n"
         f"보유종목: {holdings_count}개"
     )
-    await send(msg)
-
-
-async def notify_order(side: str, symbol: str, name: str, qty: int, price_str: str) -> None:
-    label = "🔴 매수" if side == "매수" else "🔵 매도"
-    display = name or symbol
-    msg = f"{label} <b>{display}</b>({symbol})\n{qty}주 @{price_str}\n<i>웹 수동주문</i>"
     await send(msg)
 
 

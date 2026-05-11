@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from dantadanta.api.order import OrderApi
 from dantadanta.engine.order_recorder import record_order, update_filled_price
-from dantadanta.notify.telegram import notify_order
+from dantadanta.notify.telegram import notify_web_order
 from web.api.database import get_session
 from web.api.deps import get_order_api
 from web.api.models import OrderRecord
@@ -45,7 +45,7 @@ async def manual_buy(
                      qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
         invalidate_cache()
         price_str = f"{body.price:,}원" if body.price else "시장가"
-        asyncio.create_task(notify_order("매수", sym, name, body.qty, price_str))
+        asyncio.create_task(notify_web_order("매수", sym, name, body.qty, price_str))
         if body.price == 0:
             asyncio.create_task(update_filled_price(result.order_no, sym, "buy", order_api))
         return {"order_no": result.order_no, "status": "ok"}
@@ -67,7 +67,7 @@ async def manual_sell(
                      qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
         invalidate_cache()
         price_str = f"{body.price:,}원" if body.price else "시장가"
-        asyncio.create_task(notify_order("매도", sym, name, body.qty, price_str))
+        asyncio.create_task(notify_web_order("매도", sym, name, body.qty, price_str))
         if body.price == 0:
             asyncio.create_task(update_filled_price(result.order_no, sym, "sell", order_api))
         return {"order_no": result.order_no, "status": "ok"}
