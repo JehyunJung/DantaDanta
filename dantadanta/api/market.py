@@ -42,11 +42,14 @@ class MarketApi:
     async def _ovrs_get(self, path: str, tr_id: str, params: dict) -> dict:
         """해외 시세 조회 — 항상 실서버로 직접 호출 (실서버 토큰 사용)."""
         token = await self._real_auth.get_access_token()
+        # 실거래 앱키가 있으면 헤더도 실거래 앱키로
+        app_key = self._cfg.kis_real_app_key or self._cfg.kis_app_key
+        app_secret = self._cfg.kis_real_app_secret or self._cfg.kis_app_secret
         headers = {
             "content-type": "application/json; charset=utf-8",
             "authorization": f"Bearer {token}",
-            "appkey": self._cfg.kis_app_key,
-            "appsecret": self._cfg.kis_app_secret,
+            "appkey": app_key,
+            "appsecret": app_secret,
             "tr_id": tr_id,
             "custtype": "P",
         }
