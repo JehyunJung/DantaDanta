@@ -121,6 +121,7 @@ class Trader:
                 # 전략이 내부적으로 지표 계산
                 signal = self._strategy.evaluate(symbol, df)
                 if signal.signal != Signal.BUY:
+                    logger.info("HOLD | {} [{}] — {}", symbol, market, signal.reason)
                     continue
 
                 # 이미 보유 중인 종목은 재매수 안 함
