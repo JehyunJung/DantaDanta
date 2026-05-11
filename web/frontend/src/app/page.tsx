@@ -18,8 +18,9 @@ export default async function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">대시보드</h1>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card label="예수금" value={account ? `${fmt(account.cash)}원` : "-"} />
+        <Card label="총매수금액" value={account ? `${fmt(account.total_purchase)}원` : "-"} />
         <Card label="총평가금액" value={account ? `${fmt(account.total_eval)}원` : "-"} />
         <Card label="평가손익" value={account ? `${isPos ? "+" : ""}${fmt(pnl)}원` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />
         <Card label="수익률" value={account ? `${isPos ? "+" : ""}${pnlRate}%` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />

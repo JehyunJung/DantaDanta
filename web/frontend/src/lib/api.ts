@@ -9,6 +9,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export interface AccountSummary {
   cash: number;
   total_eval: number;
+  total_purchase: number;
   holdings_count: number;
 }
 
