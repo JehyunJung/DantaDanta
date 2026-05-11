@@ -157,6 +157,14 @@ async def main() -> None:
     mode = "모의투자" if cfg.kis_is_mock else "실거래"
     logger.info("DantaDanta 시작 | 모드={} 예산={:,}원", mode, cfg.budget_limit)
 
+    # yfinance로 KRX 시간봉 즉시 워밍업 (부족한 종목만)
+    from dantadanta.engine.bar_store import warmup_from_yfinance
+    _warmup_symbols = _load_universe(market="KRX")
+    logger.info("시간봉 워밍업 시작 | KRX {}개 종목", len(_warmup_symbols))
+    for _sym in _warmup_symbols:
+        warmup_from_yfinance(_sym, market="KRX")
+    logger.info("시간봉 워밍업 완료")
+
     auth = TokenManager()
     async with KisRestClient(auth=auth) as client:
         scheduler = AsyncIOScheduler(timezone="Asia/Seoul")
