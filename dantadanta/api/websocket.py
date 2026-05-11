@@ -11,8 +11,8 @@ from loguru import logger
 from dantadanta.api.auth import TokenManager
 from dantadanta.config import Settings, get_settings
 
-_RECONNECT_DELAY = 5  # 재연결 대기(초)
-_MAX_RECONNECT = 10
+_RECONNECT_DELAY = 5   # 재연결 대기(초)
+_RECONNECT_DELAY_LONG = 60  # 장 외 시간 대기(초)
 
 
 class KisWebSocketClient:
@@ -53,21 +53,32 @@ class KisWebSocketClient:
             await self._ws.close()
 
     async def _connect_loop(self) -> None:
-        for attempt in range(_MAX_RECONNECT):
+        attempt = 0
+        while self._running:
+            attempt += 1
             try:
                 approval_key = await self._auth.get_ws_approval_key()
                 async with websockets.connect(self._cfg.kis_ws_url) as ws:
                     self._ws = ws
-                    logger.info("WebSocket 연결 성공 (시도 {})", attempt + 1)
+                    logger.info("WebSocket 연결 성공 (시도 {})", attempt)
+                    attempt = 0  # 연결 성공 시 카운터 초기화
                     await self._send_subscriptions(ws, approval_key)
                     await self._receive_loop(ws)
+            except asyncio.CancelledError:
+                break
             except Exception as exc:
-                logger.warning("WebSocket 연결 끊김: {} — {}초 후 재시도", exc, _RECONNECT_DELAY)
-                self._auth.invalidate()
-                await asyncio.sleep(_RECONNECT_DELAY)
-
-        logger.error("WebSocket 최대 재시도({}) 초과 — 스트리밍 중단", _MAX_RECONNECT)
-        self._running = False
+                exc_str = str(exc)
+                # 인증 오류일 때만 토큰 무효화
+                is_auth_error = "401" in exc_str or "403" in exc_str or "Unauthorized" in exc_str
+                if is_auth_error:
+                    self._auth.invalidate()
+                    delay = _RECONNECT_DELAY
+                else:
+                    # 장 외 시간 연결 즉시 끊김은 조용히 긴 대기
+                    delay = _RECONNECT_DELAY_LONG if attempt > 3 else _RECONNECT_DELAY
+                    if attempt <= 1 or attempt % 10 == 0:
+                        logger.debug("WebSocket 연결 끊김 (시도 {}) — {}초 후 재시도", attempt, delay)
+                await asyncio.sleep(delay)
 
     async def _receive_loop(self, ws: Any) -> None:
         async for raw in ws:

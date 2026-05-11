@@ -52,7 +52,9 @@ class TokenManager:
             return self._ws_approval_key
 
     def invalidate(self) -> None:
-        """토큰 강제 무효화 (401 응답 수신 시 사용)."""
+        """토큰 강제 무효화 (401 응답 수신 시 사용). 이미 무효화됐으면 스킵."""
+        if not self._access_token:
+            return
         self._access_token = ""
         self._expires_at = datetime.min
         self._ws_approval_key = ""
@@ -99,16 +101,26 @@ class TokenManager:
             "appkey": self._cfg.kis_app_key,
             "appsecret": self._cfg.kis_app_secret,
         }
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{self.base_url}{_TOKEN_ENDPOINT}",
-                json=payload,
-                timeout=10,
-            )
-            if not resp.is_success:
-                logger.error("토큰 발급 실패 | status={} body={}", resp.status_code, resp.text)
+        for attempt in range(3):
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.base_url}{_TOKEN_ENDPOINT}",
+                    json=payload,
+                    timeout=10,
+                )
+            if resp.is_success:
+                break
+            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            if resp.status_code == 403 and body.get("error_code") == "EGW00133":
+                wait = 62
+                logger.warning("토큰 발급 1분 제한 — {}초 후 재시도 ({}/3)", wait, attempt + 1)
+                await asyncio.sleep(wait)
+                continue
+            logger.error("토큰 발급 실패 | status={} body={}", resp.status_code, resp.text)
             resp.raise_for_status()
-            data = resp.json()
+        else:
+            resp.raise_for_status()
+        data = resp.json()
 
         self._access_token = data["access_token"]
         if "expires_in" in data:

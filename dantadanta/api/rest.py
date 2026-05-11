@@ -1,5 +1,6 @@
 """KIS REST API 기반 클라이언트."""
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -43,14 +44,27 @@ class KisRestClient:
     async def _request(self, method: str, path: str, *, tr_id: str, **kwargs: Any) -> dict:
         assert self._client, "async with 블록 안에서 사용하세요"
 
-        for attempt in range(2):
+        for attempt in range(5):
             headers = await self._build_headers(tr_id)
             resp = await self._client.request(method, path, headers=headers, **kwargs)
+            await asyncio.sleep(0.1)   # KIS: 초당 20건 제한 방어
 
             if resp.status_code == 401 and attempt == 0:
                 logger.warning("401 수신 — 토큰 재발급 후 재시도")
                 self._auth.invalidate()
                 continue
+
+            # KIS rate limit: HTTP 500 + EGW00201
+            if resp.status_code == 500:
+                try:
+                    body = resp.json()
+                    if body.get("msg_cd") == "EGW00201":
+                        wait = attempt + 1
+                        logger.warning("Rate limit (EGW00201) — {}초 후 재시도 (시도 {})", wait, attempt + 1)
+                        await asyncio.sleep(wait)
+                        continue
+                except Exception:
+                    pass
 
             if not resp.is_success:
                 logger.error("HTTP 오류 | status={} body={}", resp.status_code, resp.text)

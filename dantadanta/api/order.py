@@ -7,9 +7,10 @@ from loguru import logger
 from dantadanta.api.rest import KisRestClient
 from dantadanta.config import get_settings
 
-_ORDER_PATH = "/uapi/domestic-stock/v1/trading/order-cash"
-_BALANCE_PATH = "/uapi/domestic-stock/v1/trading/inquire-balance"
-_BUYABLE_PATH = "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
+_ORDER_PATH       = "/uapi/domestic-stock/v1/trading/order-cash"
+_BALANCE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-balance"
+_BUYABLE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
+_OVRS_ORDER_PATH  = "/uapi/overseas-stock/v1/trading/order"
 
 _TR = {
     "buy_real": "TTTC0012U",
@@ -20,6 +21,10 @@ _TR = {
     "balance_mock": "VTTC8434R",
     "buyable_real": "TTTC8908R",
     "buyable_mock": "VTTC8908R",
+    "ovrs_buy_real":  "TTTT1002U",
+    "ovrs_buy_mock":  "VTTT1002U",
+    "ovrs_sell_real": "TTTT1006U",
+    "ovrs_sell_mock": "VTTT1006U",
 }
 
 
@@ -94,12 +99,49 @@ class OrderApi:
         logger.info("매도 주문 | {} {}주 @{} → 주문번호={}", symbol, qty, price or "시장가", order_no)
         return OrderResult(order_no=order_no, symbol=symbol, side="sell", qty=qty, price=price)
 
+    async def buy_overseas(self, symbol: str, excd: str, qty: int, price: float = 0.0) -> OrderResult:
+        """해외 주식 매수. price=0 이면 시장가."""
+        suffix = "mock" if self._cfg.kis_is_mock else "real"
+        body = {
+            "CANO": self._cfg.account_prefix,
+            "ACNT_PRDT_CD": self._cfg.account_suffix,
+            "OVRS_EXCG_CD": excd,
+            "PDNO": symbol,
+            "ORD_QTY": str(qty),
+            "OVRS_ORD_UNPR": f"{price:.2f}" if price else "0",
+            "ORD_SVR_DVSN_CD": "0",
+            "ORD_DVSN": "00",
+        }
+        data = await self._c.post(_OVRS_ORDER_PATH, tr_id=_TR[f"ovrs_buy_{suffix}"], body=body)
+        order_no = data.get("output", {}).get("ODNO", "")
+        logger.info("해외 매수 | {} {} {}주 @{} → {}", excd, symbol, qty, price or "시장가", order_no)
+        return OrderResult(order_no=order_no, symbol=symbol, side="buy", qty=qty, price=int(price * 100))
+
+    async def sell_overseas(self, symbol: str, excd: str, qty: int, price: float = 0.0) -> OrderResult:
+        """해외 주식 매도. price=0 이면 시장가."""
+        suffix = "mock" if self._cfg.kis_is_mock else "real"
+        body = {
+            "CANO": self._cfg.account_prefix,
+            "ACNT_PRDT_CD": self._cfg.account_suffix,
+            "OVRS_EXCG_CD": excd,
+            "PDNO": symbol,
+            "ORD_QTY": str(qty),
+            "OVRS_ORD_UNPR": f"{price:.2f}" if price else "0",
+            "ORD_SVR_DVSN_CD": "0",
+            "ORD_DVSN": "00",
+        }
+        data = await self._c.post(_OVRS_ORDER_PATH, tr_id=_TR[f"ovrs_sell_{suffix}"], body=body)
+        order_no = data.get("output", {}).get("ODNO", "")
+        logger.info("해외 매도 | {} {} {}주 @{} → {}", excd, symbol, qty, price or "시장가", order_no)
+        return OrderResult(order_no=order_no, symbol=symbol, side="sell", qty=qty, price=int(price * 100))
+
     async def get_account(self) -> AccountSummary:
         """잔고 및 보유 종목 조회."""
         params = {
             "CANO": self._cfg.account_prefix,
             "ACNT_PRDT_CD": self._cfg.account_suffix,
             "AFHR_FLPR_YN": "N",
+            "OFL_YN": "",
             "INQR_DVSN": "02",
             "UNPR_DVSN": "01",
             "FUND_STTL_ICLD_YN": "N",
@@ -110,10 +152,12 @@ class OrderApi:
         }
         data = await self._c.get(_BALANCE_PATH, tr_id=self._tr("balance"), params=params)
 
-        output1 = data.get("output1", [{}])
-        summary = output1[0] if output1 else {}
-        cash = int(summary.get("dnca_tot_amt", 0))
-        total_eval = int(summary.get("tot_evlu_amt", 0))
+        # 실서버: output1=보유종목, output2=계좌요약
+        # 모의투자: output1=보유종목, output2=계좌요약 (동일 구조)
+        summary_list = data.get("output2", [])
+        summary = summary_list[0] if summary_list else {}
+        cash = int(float(summary.get("dnca_tot_amt", 0)))
+        total_eval = int(float(summary.get("tot_evlu_amt", 0)))
 
         holdings = [
             HoldingItem(
@@ -125,7 +169,7 @@ class OrderApi:
                 pnl_amount=int(h.get("evlu_pfls_amt", 0)),
                 pnl_rate=float(h.get("evlu_pfls_rt", 0)),
             )
-            for h in data.get("output2", [])
+            for h in data.get("output1", [])
             if int(h.get("hldg_qty", 0)) > 0
         ]
 
