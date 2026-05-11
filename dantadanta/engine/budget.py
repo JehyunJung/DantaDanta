@@ -28,11 +28,20 @@ class BudgetManager:
         self._limit = budget_limit
         self._max_ratio = max_ratio
 
-    def sync(self, cash: int) -> None:
-        """사이클 시작 시 실제 계좌 예수금으로 동기화."""
-        self._available = min(self._limit, cash)
+    def sync(self, cash: int, stocks_eval: int = 0) -> None:
+        """사이클 시작 시 실제 잔고로 동기화.
+
+        투자 가능 = budget_limit - 이미 보유 중인 주식평가금액.
+        전체 포트폴리오가 budget_limit을 초과하지 않도록 제한.
+        """
+        already_invested = stocks_eval
+        headroom = max(0, self._limit - already_invested)
+        self._available = min(headroom, max(0, cash))
         self._bought_this_cycle.clear()
-        logger.info("예산 동기화 | 실잔고={:,}원 / 투자가능={:,}원", cash, self._available)
+        logger.info(
+            "예산 동기화 | 한도={:,} / 보유주식={:,} / 가용현금={:,} / 투자가능={:,}원",
+            self._limit, already_invested, cash, self._available,
+        )
 
     @property
     def remaining(self) -> int:

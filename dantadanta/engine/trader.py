@@ -77,8 +77,8 @@ class Trader:
         logger.info("계좌 현황 | 순자산={:,}원 / 주식평가={:,}원 / 가용현금={:,}원 / 보유종목={}개",
                     account.net_asset, account.stocks_eval, cash, len(account.holdings))
 
-        # 실제 잔고로 예산 동기화
-        self._budget.sync(cash)
+        # 실제 잔고로 예산 동기화 (이미 보유 주식 차감)
+        self._budget.sync(cash, account.stocks_eval)
 
         # 1. 보유 종목 손절/익절 체크
         for h in account.holdings:
