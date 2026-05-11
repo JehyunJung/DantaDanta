@@ -33,23 +33,23 @@ export default async function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-gray-400 border-b border-gray-800">
-                <th className="text-left py-2">일시</th>
-                <th className="text-left py-2">종목</th>
-                <th className="text-left py-2">구분</th>
-                <th className="text-right py-2">수량</th>
-                <th className="text-right py-2">단가</th>
-                <th className="text-left py-2">사유</th>
+                <th className="text-left py-2 px-3">일시</th>
+                <th className="text-left py-2 px-3">종목</th>
+                <th className="text-left py-2 px-3">구분</th>
+                <th className="text-right py-2 px-3">수량</th>
+                <th className="text-right py-2 px-3">단가</th>
+                <th className="text-left py-2 px-3">사유</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-gray-800/50">
-                  <td className="py-2 text-gray-400">{new Date(o.created_at).toLocaleString("ko-KR")}</td>
-                  <td className="py-2">{o.name || o.symbol}</td>
-                  <td className={`py-2 font-medium ${o.side === "buy" ? "text-red-400" : "text-blue-400"}`}>{o.side === "buy" ? "매수" : "매도"}</td>
-                  <td className="py-2 text-right">{fmt(o.qty)}주</td>
-                  <td className="py-2 text-right">{o.price > 0 ? `${fmt(o.price)}원` : "시장가"}</td>
-                  <td className="py-2 text-gray-400 text-xs">{o.reason}</td>
+                  <td className="py-2 px-3 text-gray-400">{new Date(o.created_at).toLocaleString("ko-KR")}</td>
+                  <td className="py-2 px-3">{o.name || o.symbol}</td>
+                  <td className={`py-2 px-3 font-medium ${o.side === "buy" ? "text-red-400" : "text-blue-400"}`}>{o.side === "buy" ? "매수" : "매도"}</td>
+                  <td className="py-2 px-3 text-right">{fmt(o.qty)}주</td>
+                  <td className="py-2 px-3 text-right">{o.price > 0 ? `${fmt(o.price)}원` : "시장가"}</td>
+                  <td className="py-2 px-3 text-gray-400 text-xs">{o.reason}</td>
                 </tr>
               ))}
             </tbody>
