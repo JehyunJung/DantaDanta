@@ -11,7 +11,7 @@ from web.api.deps import get_order_api
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 
-_CACHE_TTL = 60  # 초
+_CACHE_TTL = 15  # 초
 _cache: dict[str, Any] = {}
 _cache_ts: float = 0.0
 
