@@ -13,7 +13,7 @@ _PRICE_PATH        = "/uapi/domestic-stock/v1/quotations/inquire-price"
 _DAILY_CHART_PATH  = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 _MINUTE_CHART_PATH = "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice"
 _OVRS_PRICE_PATH   = "/uapi/overseas-price/v1/quotations/price"
-_OVRS_CHART_PATH   = "/uapi/overseas-price/v1/quotations/dailychartprice"
+_OVRS_CHART_PATH   = "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice"
 
 # 해외 시세 전용 실서버 URL (모의투자 서버에는 해외 시세 API 없음)
 _REAL_BASE_URL = "https://openapi.koreainvestment.com:9443"
@@ -26,12 +26,12 @@ class MarketApi:
     def __init__(self, client: KisRestClient) -> None:
         self._c = client
         self._cfg = get_settings()
-        # 해외 API는 실서버 토큰 필요 — 모의 앱키도 실서버 토큰 발급 가능
-        if self._cfg.kis_is_mock:
+        # 해외 API는 실거래 앱키 필요 (모의 앱키로 실서버 호출 불가)
+        if self._cfg.kis_is_mock and self._cfg.kis_real_app_key:
             from dantadanta.config import Settings
             real_cfg = Settings(
-                kis_app_key=self._cfg.kis_app_key,
-                kis_app_secret=self._cfg.kis_app_secret,
+                kis_app_key=self._cfg.kis_real_app_key,
+                kis_app_secret=self._cfg.kis_real_app_secret,
                 kis_account_no=self._cfg.kis_account_no,
                 kis_is_mock=False,
             )
