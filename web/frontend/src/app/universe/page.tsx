@@ -193,7 +193,7 @@ export default function UniversePage() {
                     </Link>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 font-medium">{item.name || "-"}</td>
+                <td className="px-4 py-2.5 font-medium text-white">{item.name || "-"}</td>
                 <td className="px-4 py-2.5">
                   <span className={`text-xs px-2 py-0.5 rounded font-medium ${MARKET_BADGE[item.market] ?? "bg-gray-800 text-gray-400"}`}>
                     {item.market}

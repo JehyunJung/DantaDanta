@@ -26,7 +26,7 @@ export default async function Screener() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold">{item.name}</span>
+                  <span className="font-semibold text-white">{item.name}</span>
                   <span className="text-xs text-gray-500 font-mono">{item.symbol}</span>
                   {item.news_score !== 0 && (
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
@@ -46,7 +46,7 @@ export default async function Screener() {
                 )}
               </div>
               <div className="text-right space-y-1 shrink-0">
-                <p className="text-sm font-medium">{fmt(item.current_price)}원</p>
+                <p className="text-sm font-medium text-white">{fmt(item.current_price)}원</p>
                 {item.rsi !== null && (
                   <p className={`text-xs ${item.rsi < 30 ? "text-blue-400" : item.rsi > 70 ? "text-red-400" : "text-gray-400"}`}>
                     RSI {item.rsi.toFixed(1)}
