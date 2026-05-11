@@ -5,6 +5,7 @@ from datetime import date
 import httpx
 import pandas as pd
 
+from dantadanta.api.auth import TokenManager
 from dantadanta.api.rest import KisRestClient
 from dantadanta.config import get_settings
 
@@ -25,10 +26,22 @@ class MarketApi:
     def __init__(self, client: KisRestClient) -> None:
         self._c = client
         self._cfg = get_settings()
+        # 모의투자 모드일 때 해외 API는 실서버 토큰 별도 발급
+        if self._cfg.kis_is_mock:
+            from dantadanta.config import Settings
+            real_cfg = Settings(
+                kis_app_key=self._cfg.kis_app_key,
+                kis_app_secret=self._cfg.kis_app_secret,
+                kis_account_no=self._cfg.kis_account_no,
+                kis_is_mock=False,
+            )
+            self._real_auth = TokenManager(real_cfg)
+        else:
+            self._real_auth = self._c._auth
 
     async def _ovrs_get(self, path: str, tr_id: str, params: dict) -> dict:
-        """해외 시세 조회 — 항상 실서버로 직접 호출."""
-        token = await self._c._auth.get_access_token()
+        """해외 시세 조회 — 항상 실서버로 직접 호출 (실서버 토큰 사용)."""
+        token = await self._real_auth.get_access_token()
         headers = {
             "content-type": "application/json; charset=utf-8",
             "authorization": f"Bearer {token}",
