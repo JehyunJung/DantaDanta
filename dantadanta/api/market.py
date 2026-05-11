@@ -26,12 +26,12 @@ class MarketApi:
     def __init__(self, client: KisRestClient) -> None:
         self._c = client
         self._cfg = get_settings()
-        # 모의투자 모드일 때 해외 API는 실서버 토큰 별도 발급
-        if self._cfg.kis_is_mock:
+        # 해외 API는 실거래 앱키로 토큰 발급 (모의투자 키는 실서버에서 무효)
+        if self._cfg.kis_is_mock and self._cfg.kis_real_app_key:
             from dantadanta.config import Settings
             real_cfg = Settings(
-                kis_app_key=self._cfg.kis_app_key,
-                kis_app_secret=self._cfg.kis_app_secret,
+                kis_app_key=self._cfg.kis_real_app_key,
+                kis_app_secret=self._cfg.kis_real_app_secret,
                 kis_account_no=self._cfg.kis_account_no,
                 kis_is_mock=False,
             )

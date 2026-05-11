@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     kis_account_no: str
     kis_is_mock: bool = True
 
+    # 실거래 앱키 (해외 시세 전용 — 주문은 모의투자 키 사용)
+    kis_real_app_key: str = ""
+    kis_real_app_secret: str = ""
+
     # OpenAI
     openai_api_key: str = ""
 
