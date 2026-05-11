@@ -63,7 +63,9 @@ class MarketApi:
         }
         async with httpx.AsyncClient(base_url=_REAL_BASE_URL, timeout=10) as client:
             resp = await client.get(path, headers=headers, params=params)
-        resp.raise_for_status()
+        if not resp.is_success:
+            logger.warning("해외 API 오류 | %s %s | body=%s", tr_id, params.get("SYMB", ""), resp.text[:300])
+            resp.raise_for_status()
         return resp.json()
 
     async def get_price(self, symbol: str) -> dict:
