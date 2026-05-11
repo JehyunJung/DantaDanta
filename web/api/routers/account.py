@@ -11,11 +11,12 @@ router = APIRouter(prefix="/api/account", tags=["account"])
 @router.get("")
 async def get_account(order_api: OrderApi = Depends(get_order_api)):
     account = await order_api.get_account()
-    total_purchase = sum(int(h.avg_price * h.qty) for h in account.holdings)
     return {
-        "cash": account.cash,
-        "total_eval": account.total_eval,
-        "total_purchase": total_purchase,
+        "net_asset": account.net_asset,
+        "stocks_eval": account.stocks_eval,
+        "total_purchase": account.total_purchase,
+        "pnl_amount": account.pnl_amount,
+        "pnl_rate": round(account.pnl_amount / account.total_purchase * 100, 2) if account.total_purchase else 0.0,
         "holdings_count": len(account.holdings),
     }
 

@@ -53,8 +53,10 @@ class HoldingItem:
 
 @dataclass
 class AccountSummary:
-    cash: int               # 예수금
-    total_eval: int         # 총평가금액
+    net_asset: int          # 순자산 (tot_evlu_amt)
+    stocks_eval: int        # 주식평가금액 (scts_evlu_amt)
+    total_purchase: int     # 총매수금액 (pchs_amt_smtl_amt)
+    pnl_amount: int         # 평가손익 (evlu_pfls_smtl_amt)
     holdings: list[HoldingItem]
 
 
@@ -159,8 +161,10 @@ class OrderApi:
         # 모의투자: output1=보유종목, output2=계좌요약 (동일 구조)
         summary_list = data.get("output2", [])
         summary = summary_list[0] if summary_list else {}
-        cash = int(float(summary.get("dnca_tot_amt", 0)))
-        total_eval = int(float(summary.get("tot_evlu_amt", 0)))
+        net_asset     = int(float(summary.get("tot_evlu_amt", 0)))
+        stocks_eval   = int(float(summary.get("scts_evlu_amt", 0)))
+        total_purchase = int(float(summary.get("pchs_amt_smtl_amt", 0)))
+        pnl_amount    = int(float(summary.get("evlu_pfls_smtl_amt", 0)))
 
         holdings = [
             HoldingItem(
@@ -176,7 +180,13 @@ class OrderApi:
             if int(h.get("hldg_qty", 0)) > 0
         ]
 
-        return AccountSummary(cash=cash, total_eval=total_eval, holdings=holdings)
+        return AccountSummary(
+            net_asset=net_asset,
+            stocks_eval=stocks_eval,
+            total_purchase=total_purchase,
+            pnl_amount=pnl_amount,
+            holdings=holdings,
+        )
 
     async def get_buyable_amount(self, symbol: str, price: int) -> int:
         """특정 종목을 해당 가격에 매수 가능한 금액 조회."""

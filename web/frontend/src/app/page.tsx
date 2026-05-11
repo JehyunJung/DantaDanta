@@ -10,20 +10,18 @@ export default async function Dashboard() {
     apiFetch<Order[]>("/api/orders?limit=5").catch(() => []),
   ]);
 
-  const pnl = account ? account.total_eval - account.cash : 0;
-  const pnlRate = account && account.cash > 0 ? ((pnl / account.cash) * 100).toFixed(2) : "0.00";
-  const isPos = pnl >= 0;
+  const isPos = (account?.pnl_amount ?? 0) >= 0;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">대시보드</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card label="예수금" value={account ? `${fmt(account.cash)}원` : "-"} />
+        <Card label="순자산" value={account ? `${fmt(account.net_asset)}원` : "-"} />
         <Card label="총매수금액" value={account ? `${fmt(account.total_purchase)}원` : "-"} />
-        <Card label="총평가금액" value={account ? `${fmt(account.total_eval)}원` : "-"} />
-        <Card label="평가손익" value={account ? `${isPos ? "+" : ""}${fmt(pnl)}원` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />
-        <Card label="수익률" value={account ? `${isPos ? "+" : ""}${pnlRate}%` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />
+        <Card label="주식평가금액" value={account ? `${fmt(account.stocks_eval)}원` : "-"} />
+        <Card label="평가손익" value={account ? `${isPos ? "+" : ""}${fmt(account.pnl_amount)}원` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />
+        <Card label="수익률" value={account ? `${isPos ? "+" : ""}${account.pnl_rate.toFixed(2)}%` : "-"} color={isPos ? "text-red-400" : "text-blue-400"} />
       </div>
 
       <section>
