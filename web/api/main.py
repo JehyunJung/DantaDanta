@@ -68,6 +68,11 @@ async def lifespan(app: FastAPI):
         all_symbols = [r.symbol for r in session.exec(select(UniverseSymbol)).all()]
     asyncio.create_task(get_price_cache().run(all_symbols))
 
+    # 서버 시작 시 계좌 캐시 워밍업 (첫 페이지 로드 즉시 반환)
+    from web.api.routers.account import _fetch_account
+    from web.api.deps import get_order_api
+    asyncio.create_task(_fetch_account(get_order_api()))
+
     logger.info("DantaDanta API 서버 시작")
     yield
     # 종료

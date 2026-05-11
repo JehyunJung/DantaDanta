@@ -27,7 +27,7 @@ class KisRestClient:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "KisRestClient":
-        self._client = httpx.AsyncClient(base_url=self._cfg.kis_base_url, timeout=10)
+        self._client = httpx.AsyncClient(base_url=self._cfg.kis_base_url, timeout=20)
         return self
 
     async def __aexit__(self, *_: Any) -> None:
