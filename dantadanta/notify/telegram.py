@@ -59,6 +59,13 @@ async def notify_summary(net_asset: int, stocks_eval: int, pnl_amount: int, hold
     await send(msg)
 
 
+async def notify_order(side: str, symbol: str, name: str, qty: int, price_str: str) -> None:
+    label = "🔴 매수" if side == "매수" else "🔵 매도"
+    display = name or symbol
+    msg = f"{label} <b>{display}</b>({symbol})\n{qty}주 @{price_str}\n<i>웹 수동주문</i>"
+    await send(msg)
+
+
 # ── 커맨드 폴링 ──────────────────────────────────────────
 
 _last_update_id: int = 0

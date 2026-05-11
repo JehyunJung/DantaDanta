@@ -14,6 +14,11 @@ router = APIRouter(prefix="/api/account", tags=["account"])
 _CACHE_TTL = 60  # 초
 _cache: dict[str, Any] = {}
 _cache_ts: float = 0.0
+
+
+def invalidate_cache() -> None:
+    global _cache_ts
+    _cache_ts = 0.0
 _KIS_TIMEOUT = 18.0  # KIS API 타임아웃 (장 외 시간에 최대 ~15초)
 
 

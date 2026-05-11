@@ -10,9 +10,11 @@ from sqlmodel import Session, select
 
 from dantadanta.api.order import OrderApi
 from dantadanta.engine.order_recorder import record_order, update_filled_price
+from dantadanta.notify.telegram import notify_order
 from web.api.database import get_session
 from web.api.deps import get_order_api
 from web.api.models import OrderRecord
+from web.api.routers.account import invalidate_cache
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
@@ -36,12 +38,16 @@ async def manual_buy(
     session: Session = Depends(get_session),
 ):
     try:
-        result = await order_api.buy(body.symbol.upper(), body.qty, body.price)
-        record_order(order_no=result.order_no, symbol=body.symbol.upper(),
-                     side="buy", qty=body.qty, price=body.price,
-                     name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
+        sym = body.symbol.upper()
+        name = _lookup_name(sym, session)
+        result = await order_api.buy(sym, body.qty, body.price)
+        record_order(order_no=result.order_no, symbol=sym, side="buy",
+                     qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
+        invalidate_cache()
+        price_str = f"{body.price:,}원" if body.price else "시장가"
+        asyncio.create_task(notify_order("매수", sym, name, body.qty, price_str))
         if body.price == 0:
-            asyncio.create_task(update_filled_price(result.order_no, body.symbol.upper(), "buy", order_api))
+            asyncio.create_task(update_filled_price(result.order_no, sym, "buy", order_api))
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -54,12 +60,16 @@ async def manual_sell(
     session: Session = Depends(get_session),
 ):
     try:
-        result = await order_api.sell(body.symbol.upper(), body.qty, body.price)
-        record_order(order_no=result.order_no, symbol=body.symbol.upper(),
-                     side="sell", qty=body.qty, price=body.price,
-                     name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
+        sym = body.symbol.upper()
+        name = _lookup_name(sym, session)
+        result = await order_api.sell(sym, body.qty, body.price)
+        record_order(order_no=result.order_no, symbol=sym, side="sell",
+                     qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
+        invalidate_cache()
+        price_str = f"{body.price:,}원" if body.price else "시장가"
+        asyncio.create_task(notify_order("매도", sym, name, body.qty, price_str))
         if body.price == 0:
-            asyncio.create_task(update_filled_price(result.order_no, body.symbol.upper(), "sell", order_api))
+            asyncio.create_task(update_filled_price(result.order_no, sym, "sell", order_api))
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
