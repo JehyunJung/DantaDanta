@@ -1,5 +1,6 @@
 """주문 내역 API."""
 
+import asyncio
 from datetime import date
 from typing import Optional
 
@@ -28,6 +29,26 @@ def _lookup_name(symbol: str, session: Session) -> str:
     return row.name if row and row.name else ""
 
 
+async def _update_filled_price(order_no: str, order_api: OrderApi) -> None:
+    """시장가 주문 체결가를 2초 후 조회해 DB 업데이트."""
+    await asyncio.sleep(2)
+    try:
+        filled = await order_api.get_filled_price(order_no)
+        if filled > 0:
+            from web.api.database import engine
+            with Session(engine) as s:
+                record = s.exec(
+                    select(OrderRecord).where(OrderRecord.order_no == order_no)
+                ).first()
+                if record:
+                    record.price = filled
+                    record.amount = record.qty * filled
+                    s.add(record)
+                    s.commit()
+    except Exception:
+        pass
+
+
 @router.post("/buy")
 async def manual_buy(
     body: OrderRequest,
@@ -39,6 +60,8 @@ async def manual_buy(
         record_order(order_no=result.order_no, symbol=body.symbol.upper(),
                      side="buy", qty=body.qty, price=body.price,
                      name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
+        if body.price == 0:
+            asyncio.create_task(_update_filled_price(result.order_no, order_api))
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -55,6 +78,8 @@ async def manual_sell(
         record_order(order_no=result.order_no, symbol=body.symbol.upper(),
                      side="sell", qty=body.qty, price=body.price,
                      name=_lookup_name(body.symbol.upper(), session), reason="웹 수동주문")
+        if body.price == 0:
+            asyncio.create_task(_update_filled_price(result.order_no, order_api))
         return {"order_no": result.order_no, "status": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))

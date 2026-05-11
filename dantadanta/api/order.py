@@ -11,6 +11,7 @@ _ORDER_PATH       = "/uapi/domestic-stock/v1/trading/order-cash"
 _BALANCE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-balance"
 _BUYABLE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
 _OVRS_ORDER_PATH  = "/uapi/overseas-stock/v1/trading/order"
+_CCLD_PATH        = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld"
 
 _TR = {
     "buy_real": "TTTC0012U",
@@ -25,6 +26,8 @@ _TR = {
     "ovrs_buy_mock":  "VTTT1002U",
     "ovrs_sell_real": "TTTT1006U",
     "ovrs_sell_mock": "VTTT1006U",
+    "ccld_real": "TTTC8001R",
+    "ccld_mock": "VTTC8001R",
 }
 
 
@@ -188,3 +191,36 @@ class OrderApi:
         }
         data = await self._c.get(_BUYABLE_PATH, tr_id=self._tr("buyable"), params=params)
         return int(data.get("output", {}).get("ord_psbl_cash", 0))
+
+    async def get_filled_price(self, order_no: str) -> int:
+        """시장가 주문의 실제 체결가 조회. 미체결 시 0 반환."""
+        from datetime import date
+        today = date.today().strftime("%Y%m%d")
+        try:
+            data = await self._c.get(
+                _CCLD_PATH,
+                tr_id=self._tr("ccld"),
+                params={
+                    "CANO": self._cfg.account_prefix,
+                    "ACNT_PRDT_CD": self._cfg.account_suffix,
+                    "INQR_STRT_DT": today,
+                    "INQR_END_DT": today,
+                    "SLL_BUY_DVSN_CD": "00",
+                    "INQR_DVSN": "00",
+                    "PDNO": "",
+                    "CCLD_DVSN": "01",
+                    "ORD_GNO_BRNO": "",
+                    "ODNO": order_no,
+                    "INQR_DVSN_3": "00",
+                    "INQR_DVSN_1": "",
+                    "CTX_AREA_FK100": "",
+                    "CTX_AREA_NK100": "",
+                },
+            )
+            rows = data.get("output1", [])
+            for row in rows:
+                if row.get("odno") == order_no:
+                    return int(float(row.get("avg_prvs", 0)))
+        except Exception as exc:
+            logger.debug("체결가 조회 실패 | {}: {}", order_no, exc)
+        return 0
