@@ -114,8 +114,12 @@ export default function Positions() {
                     <tr key={p.symbol} className="border-b border-gray-800/50">
                       <td className="py-2">{p.name}<span className="text-gray-500 text-xs ml-1">{p.symbol}</span></td>
                       <td className="py-2 text-right">{fmt(p.qty)}</td>
-                      <td className="py-2 text-right">{fmt(Math.round(p.avg_price))}</td>
-                      <td className="py-2 text-right">{fmt(Math.round(p.avg_price * p.qty))}</td>
+                      <td className="py-2 text-right">
+                        {p.market !== "KRX" ? `$${p.avg_price.toFixed(2)}` : fmt(Math.round(p.avg_price))}
+                      </td>
+                      <td className="py-2 text-right">
+                        {p.market !== "KRX" ? `$${(p.avg_price * p.qty).toFixed(2)}` : fmt(Math.round(p.avg_price * p.qty))}
+                      </td>
                       <td className="py-2 text-right">{fmt(p.current_price)}</td>
                       <td className="py-2 text-right">{fmt(p.amount)}</td>
                       <td className={`py-2 text-right font-medium ${isPos ? "text-red-400" : "text-blue-400"}`}>{isPos ? "+" : ""}{fmt(p.pnl_amount)}</td>

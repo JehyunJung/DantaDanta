@@ -22,7 +22,7 @@ def record_order(
     symbol: str,
     side: str,
     qty: int,
-    price: int,
+    price: float,
     name: str = "",
     reason: str = "",
     strategy: str = "",
@@ -50,33 +50,57 @@ def record_order(
         logger.warning("주문 기록 실패 (무시): {}", exc)
 
 
+def _is_overseas_symbol(symbol: str) -> bool:
+    return symbol.isalpha() and len(symbol) <= 5
+
+
+async def _get_overseas_price_yf(symbol: str) -> float:
+    """yfinance로 해외 종목 현재가 조회 (USD)."""
+    import asyncio as _asyncio
+    import yfinance as yf
+
+    def _fetch():
+        info = yf.Ticker(symbol).fast_info
+        return getattr(info, "last_price", None) or getattr(info, "regularMarketPrice", None) or 0.0
+
+    try:
+        return await _asyncio.get_event_loop().run_in_executor(None, _fetch)
+    except Exception:
+        return 0.0
+
+
 async def update_filled_price(order_no: str, symbol: str, side: str, order_api) -> None:
     """시장가 주문 체결가 업데이트 (봇/텔레그램/웹 공통).
 
-    1차: CCLD API (실계좌), 2차 fallback: 매수=잔고평균단가, 매도=PriceCache
+    국내: 1차 CCLD API → 2차 잔고평균단가/PriceCache
+    해외: yfinance 현재가
     """
     from dantadanta.engine.price_cache import get_price_cache
 
     await asyncio.sleep(2)
 
-    filled = 0
-    try:
-        filled = await order_api.get_filled_price(order_no)
-    except Exception:
-        pass
+    filled: float = 0.0
 
-    if filled <= 0:
+    if _is_overseas_symbol(symbol):
+        filled = await _get_overseas_price_yf(symbol)
+    else:
         try:
-            if side == "buy":
-                account = await order_api.get_account()
-                for h in account.holdings:
-                    if h.symbol == symbol and h.avg_price > 0:
-                        filled = int(h.avg_price)
-                        break
-            else:
-                filled = int(get_price_cache().get(symbol) or 0)
+            filled = float(await order_api.get_filled_price(order_no))
         except Exception:
             pass
+
+        if filled <= 0:
+            try:
+                if side == "buy":
+                    account = await order_api.get_account()
+                    for h in account.holdings:
+                        if h.symbol == symbol and h.avg_price > 0:
+                            filled = float(h.avg_price)
+                            break
+                else:
+                    filled = float(get_price_cache().get(symbol) or 0)
+            except Exception:
+                pass
 
     if filled > 0:
         try:

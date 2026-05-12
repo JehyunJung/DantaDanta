@@ -9,6 +9,7 @@ from dantadanta.config import get_settings
 
 _ORDER_PATH       = "/uapi/domestic-stock/v1/trading/order-cash"
 _BALANCE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-balance"
+_OVRS_BALANCE_PATH = "/uapi/overseas-stock/v1/trading/inquire-balance"
 _BUYABLE_PATH     = "/uapi/domestic-stock/v1/trading/inquire-psbl-order"
 _OVRS_ORDER_PATH  = "/uapi/overseas-stock/v1/trading/order"
 _CCLD_PATH        = "/uapi/domestic-stock/v1/trading/inquire-daily-ccld"
@@ -20,6 +21,8 @@ _TR = {
     "sell_mock": "VTTC0011U",
     "balance_real": "TTTC8434R",
     "balance_mock": "VTTC8434R",
+    "ovrs_balance_real": "TTTS3012R",
+    "ovrs_balance_mock": "VTTS3012R",
     "buyable_real": "TTTC8908R",
     "buyable_mock": "VTTC8908R",
     "ovrs_buy_real":  "TTTT1002U",
@@ -58,6 +61,7 @@ class AccountSummary:
     total_purchase: int     # 총매수금액 (pchs_amt_smtl_amt)
     pnl_amount: int         # 평가손익 (evlu_pfls_smtl_amt)
     holdings: list[HoldingItem]
+    overseas_cash: int = 0  # 해외 예수금 (원화 환산)
 
 
 class OrderApi:
@@ -180,13 +184,91 @@ class OrderApi:
             if int(h.get("hldg_qty", 0)) > 0
         ]
 
+        # 해외 잔고 합산
+        overseas_cash = 0
+        try:
+            ovrs_holdings, ovrs_stocks_eval, ovrs_purchase, ovrs_pnl, overseas_cash = await self._get_overseas_balance()
+            holdings       += ovrs_holdings
+            stocks_eval    += ovrs_stocks_eval
+            total_purchase += ovrs_purchase
+            pnl_amount     += ovrs_pnl
+            net_asset      += ovrs_stocks_eval + overseas_cash
+        except Exception as exc:
+            import traceback
+            logger.warning("해외 잔고 조회 실패: {} | {}", exc, traceback.format_exc())
+
         return AccountSummary(
             net_asset=net_asset,
             stocks_eval=stocks_eval,
             total_purchase=total_purchase,
             pnl_amount=pnl_amount,
             holdings=holdings,
+            overseas_cash=overseas_cash,
         )
+
+    async def _get_overseas_balance(self) -> tuple[list[HoldingItem], int, int, int, int]:
+        """해외 주식 잔고 조회. (holdings, stocks_eval_krw, total_purchase_krw, pnl_krw, cash_krw)"""
+        suffix = "real" if not self._cfg.kis_is_mock else "mock"
+        tr_id = _TR[f"ovrs_balance_{suffix}"]
+        all_holdings: list[HoldingItem] = []
+        total_eval = total_purchase = total_pnl = overseas_cash = 0
+
+        for crcy in ("USD", "HKD", "JPY", "CNY", "EUR"):
+            params = {
+                "CANO": self._cfg.account_prefix,
+                "ACNT_PRDT_CD": self._cfg.account_suffix,
+                "OVRS_EXCG_CD": "NASD",
+                "TR_CRCY_CD": crcy,
+                "CTX_AREA_FK200": "",
+                "CTX_AREA_NK200": "",
+            }
+            try:
+                data = await self._c.get(_OVRS_BALANCE_PATH, tr_id=tr_id, params=params)
+            except Exception:
+                continue
+
+            output2 = data.get("output2", {})
+            summary = (output2[0] if output2 else {}) if isinstance(output2, list) else output2
+
+            # output2는 KRW 기준 — 매수금액 + 손익으로 평가금액 계산
+            pchs_krw = int(float(summary.get("frcr_pchs_amt1", 0)))          # KRW 매수금액
+            pnl_krw  = int(float(summary.get("tot_evlu_pfls_amt", 0)))        # KRW 평가손익
+            eval_total_krw = pchs_krw + pnl_krw                               # KRW 평가금액
+
+            for h in data.get("output1", []):
+                qty = int(h.get("ovrs_cblc_qty", 0))
+                if qty <= 0:
+                    continue
+
+                # output1은 USD 기준 — output2 비율로 KRW 환산
+                usd_eval  = float(h.get("ovrs_stck_evlu_amt", 0))             # USD 평가금액
+                usd_total = float(summary.get("frcr_buy_amt_smtl1", 0)) or float(summary.get("frcr_pchs_amt1", 0)) or 1
+                # KRW 환산: 종목 USD 비중 × 전체 KRW
+                eval_krw  = int(usd_eval / usd_total * eval_total_krw) if usd_total else 0
+
+                avg_price_usd = float(h.get("pchs_avg_pric", 0))
+                pnl_rate      = float(h.get("evlu_pfls_rt", 0))
+                pfls_usd      = float(h.get("frcr_evlu_pfls_amt", 0))
+                pchs_usd      = float(h.get("frcr_pchs_amt1", 0))
+                pnl_amt_krw   = int(pfls_usd / usd_total * pnl_krw) if usd_total else 0
+
+                all_holdings.append(HoldingItem(
+                    symbol=h.get("ovrs_pdno", ""),
+                    name=h.get("ovrs_item_name", ""),
+                    qty=qty,
+                    avg_price=avg_price_usd,
+                    current_price=eval_krw // qty if qty else 0,
+                    pnl_amount=pnl_amt_krw,
+                    pnl_rate=pnl_rate,
+                ))
+                total_eval     += eval_krw
+                total_purchase += int(pchs_usd / usd_total * pchs_krw) if usd_total else 0
+                total_pnl      += pnl_amt_krw
+
+            if all_holdings:
+                break
+
+        return all_holdings, total_eval, total_purchase, total_pnl, overseas_cash
 
     async def get_buyable_amount(self, symbol: str, price: int) -> int:
         """특정 종목을 해당 가격에 매수 가능한 금액 조회."""

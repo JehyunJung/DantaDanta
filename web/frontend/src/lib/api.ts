@@ -24,6 +24,7 @@ export interface Position {
   pnl_amount: number;
   pnl_rate: number;
   amount: number;
+  market: string;
 }
 
 export interface Order {
@@ -38,6 +39,7 @@ export interface Order {
   reason: string;
   strategy: string;
   created_at: string;
+  market: string;
 }
 
 export interface Candle {

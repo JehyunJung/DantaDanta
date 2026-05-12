@@ -49,10 +49,14 @@ async def lifespan(app: FastAPI):
     from web.api.routers.config import set_config_value
     cfg = get_settings()
     for session in get_session():
-        if not session.get(AppConfig, "budget_limit"):
-            set_config_value(session, "budget_limit", str(cfg.budget_limit))
-        if not session.get(AppConfig, "max_position_ratio"):
-            set_config_value(session, "max_position_ratio", str(cfg.max_position_ratio))
+        if not session.get(AppConfig, "krx_budget_limit"):
+            set_config_value(session, "krx_budget_limit", str(cfg.budget_limit))
+        if not session.get(AppConfig, "krx_max_position_ratio"):
+            set_config_value(session, "krx_max_position_ratio", str(cfg.max_position_ratio))
+        if not session.get(AppConfig, "overseas_budget_limit"):
+            set_config_value(session, "overseas_budget_limit", str(cfg.budget_limit))
+        if not session.get(AppConfig, "overseas_max_position_ratio"):
+            set_config_value(session, "overseas_max_position_ratio", str(cfg.max_position_ratio))
         if not session.get(AppConfig, "swing_tp_rate"):
             set_config_value(session, "swing_tp_rate", "5.0")
         if not session.get(AppConfig, "swing_sl_rate"):

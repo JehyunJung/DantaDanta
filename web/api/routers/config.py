@@ -10,14 +10,20 @@ router = APIRouter(prefix="/api/config", tags=["config"])
 
 _DEFAULTS: dict[str, str] = {
     # ── 예산 ──────────────────────────────────────────────
-    "budget_limit":        "1000000",  # 총 투자 한도(원)
-    "max_position_ratio":  "0.2",      # 종목당 최대 비율
+    "krx_budget_limit":         "10000000",  # 국장 투자 한도(원)
+    "krx_max_position_ratio":   "0.2",       # 국장 종목당 최대 비율
+    "overseas_budget_limit":    "10000000",  # 미장 투자 한도(원)
+    "overseas_max_position_ratio": "0.2",    # 미장 종목당 최대 비율
 
     # ── 스윙 트레이딩 (30분 사이클) ─────────────────────
     "swing_sl_rate":       "3.0",      # 손절 %
     "swing_tp_rate":       "7.0",     # 익절 %
     "news_enabled":        "true",     # 뉴스 감성 필터 사용
     "news_threshold":      "-0.3",     # 매수 보류 기준 감성 점수
+
+    # ── 전략 선택 ─────────────────────────────────────────
+    "strategy_id":         "ma_cross",  # ma_cross | kis_builder
+    "kis_builder_strategy": "golden_cross",  # Strategy Builder 프리셋
 
     # ── 스캘핑 ────────────────────────────────────────────
     "scalping_enabled":    "false",
@@ -51,8 +57,10 @@ def set_config_value(session: Session, key: str, value: str) -> None:
 def _serialize(cfg: dict) -> dict:
     return {
         # 예산
-        "budget_limit":       int(cfg["budget_limit"]),
-        "max_position_ratio": float(cfg["max_position_ratio"]),
+        "krx_budget_limit":            int(cfg["krx_budget_limit"]),
+        "krx_max_position_ratio":      float(cfg["krx_max_position_ratio"]),
+        "overseas_budget_limit":       int(cfg["overseas_budget_limit"]),
+        "overseas_max_position_ratio": float(cfg["overseas_max_position_ratio"]),
         # 스윙
         "swing_sl_rate":      float(cfg["swing_sl_rate"]),
         "swing_tp_rate":      float(cfg["swing_tp_rate"]),

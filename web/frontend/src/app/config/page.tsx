@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
 interface Config {
-  budget_limit: number;
-  max_position_ratio: number;
+  krx_budget_limit: number;
+  krx_max_position_ratio: number;
+  overseas_budget_limit: number;
+  overseas_max_position_ratio: number;
   swing_sl_rate: number;
   swing_tp_rate: number;
   news_enabled: boolean;
@@ -22,9 +24,13 @@ export default function ConfigPage() {
   const [cfg, setCfg] = useState<Config | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [netAsset, setNetAsset] = useState(100_000_000);
 
   useEffect(() => {
     apiFetch<Config>("/api/config").then(setCfg).catch(() => {});
+    apiFetch<{ net_asset: number }>("/api/account").then(d => {
+      if (d.net_asset > 0) setNetAsset(d.net_asset);
+    }).catch(() => {});
   }, []);
 
   async function patch(update: Partial<Config>) {
@@ -51,6 +57,7 @@ export default function ConfigPage() {
     ((cfg.swing_tp_rate / 10) * 0.5 + (1 - cfg.swing_sl_rate / 10) * 0.5) * 100
   );
 
+
   return (
     <div className="max-w-2xl space-y-5">
       <div className="flex items-center justify-between">
@@ -62,16 +69,29 @@ export default function ConfigPage() {
         </span>
       </div>
 
-      {/* 예산 */}
-      <Section title="예산" desc="자동매매에 사용할 총 투자 한도">
-        <Row label="총 투자 한도" unit="원" min={100000} max={50000000} step={100000}
-          value={cfg.budget_limit}
-          onChange={v => patch({ budget_limit: v })} />
+      {/* 국장 예산 */}
+      <Section title="국장 예산" desc="국내(KRX) 자동매매 투자 한도">
+        <Row label="투자 한도" unit="원" min={100000} max={netAsset} step={100000}
+          value={cfg.krx_budget_limit}
+          onChange={v => patch({ krx_budget_limit: v })} />
         <Row label="종목당 최대 비율" unit="%" min={5} max={100} step={5}
-          value={Math.round(cfg.max_position_ratio * 100)}
-          onChange={v => patch({ max_position_ratio: v / 100 })} />
+          value={Math.round(cfg.krx_max_position_ratio * 100)}
+          onChange={v => patch({ krx_max_position_ratio: v / 100 })} />
         <div className="text-xs text-gray-500 pt-1">
-          종목당 최대 투자금 = {Math.round(cfg.budget_limit * cfg.max_position_ratio).toLocaleString()}원
+          종목당 최대 = {Math.round(cfg.krx_budget_limit * cfg.krx_max_position_ratio).toLocaleString()}원
+        </div>
+      </Section>
+
+      {/* 미장 예산 */}
+      <Section title="미장 예산" desc="해외(NASDAQ/NYSE) 자동매매 투자 한도">
+        <Row label="투자 한도" unit="원" min={100000} max={netAsset} step={100000}
+          value={cfg.overseas_budget_limit}
+          onChange={v => patch({ overseas_budget_limit: v })} />
+        <Row label="종목당 최대 비율" unit="%" min={5} max={100} step={5}
+          value={Math.round(cfg.overseas_max_position_ratio * 100)}
+          onChange={v => patch({ overseas_max_position_ratio: v / 100 })} />
+        <div className="text-xs text-gray-500 pt-1">
+          종목당 최대 = {Math.round(cfg.overseas_budget_limit * cfg.overseas_max_position_ratio).toLocaleString()}원
         </div>
       </Section>
 

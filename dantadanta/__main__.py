@@ -51,6 +51,7 @@ async def _build_trader(client: KisRestClient, market: str | None = None) -> Tra
         budget=BudgetManager(),
         strategy=MaCrossStrategy(),
         universe=_load_universe(market),
+        budget_overseas=BudgetManager(),
     )
 
 
@@ -70,7 +71,22 @@ async def _krx_trade_job(client: KisRestClient) -> None:
         await notify_error("국장 매매 사이클", str(exc))
 
 
+def _is_us_market_open() -> bool:
+    """서머타임 자동 반영 — America/New_York 기준 09:30~16:00 평일."""
+    from zoneinfo import ZoneInfo
+    from datetime import datetime, time
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    if now_et.weekday() >= 5:
+        return False
+    return time(9, 30) <= now_et.time() < time(16, 0)
+
+
 async def _us_trade_job(client: KisRestClient) -> None:
+    if get_settings().kis_is_mock:
+        return
+    if not _is_us_market_open():
+        return
+
     from dantadanta.engine import state
     if state.is_paused():
         logger.info("봇 일시정지 중 — 미장 사이클 건너뜀")
@@ -103,6 +119,8 @@ async def _collect_bars_job(client: KisRestClient) -> None:
 
 async def _screen_job(client: KisRestClient, market: str) -> None:
     """스크리너 캐시 프리워밍 — 웹 페이지가 항상 캐시를 히트하도록."""
+    if market != "KRX" and get_settings().kis_is_mock:
+        return
     try:
         from sqlmodel import Session, create_engine, select
         from web.api.models import UniverseSymbol
@@ -191,13 +209,14 @@ async def main() -> None:
             id="daily_summary",
         )
 
-        # 미국장 15분마다 매매 사이클 (KST 23:05~05:50, 평일)
+        # 미국장 15분마다 매매 사이클 — 서머타임(22:30~05:00) + 표준시(23:30~06:00) 모두 커버
+        # _is_us_market_open()이 내부에서 실제 개장 여부 필터링
         scheduler.add_job(
             _us_trade_job,
             "cron",
             args=[client],
             day_of_week="mon-fri",
-            hour="23,0,1,2,3,4,5",
+            hour="22,23,0,1,2,3,4,5,6",
             minute="5,20,35,50",
             id="us_trade_cycle",
         )
@@ -219,18 +238,14 @@ async def main() -> None:
             day_of_week="mon-fri", hour="9-15", minute="0,30", id="krx_screen",
         )
 
-        # 미장 스크리너 프리워밍 — 장전 2회(22:30, 22:50) + 장중 30분 간격(23:00~05:00)
+        # 미장 스크리너 — 서머타임/표준시 모두 커버 (21:30~06:30 KST)
         scheduler.add_job(
             _screen_job, "cron", args=[client, "US"],
-            day_of_week="mon-fri", hour="22", minute="30,50", id="us_screen_pre",
-        )
-        scheduler.add_job(
-            _screen_job, "cron", args=[client, "US"],
-            day_of_week="mon-fri", hour="23,0,1,2,3,4,5", minute="0,30", id="us_screen",
+            day_of_week="mon-fri", hour="21,22,23,0,1,2,3,4,5,6", minute="0,30", id="us_screen",
         )
 
         scheduler.start()
-        logger.info("스케줄러 시작 | 국장 15분 간격 (09:05~15:20) / 미장 15분 간격 (23:05~05:50)")
+        logger.info("스케줄러 시작 | 국장 15분 간격 (09:05~15:20) / 미장 15분 간격 (서머타임 22:35~04:50 / 표준시 23:35~05:50)")
 
         order_api = OrderApi(client)
         market_api = MarketApi(client)

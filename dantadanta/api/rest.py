@@ -54,17 +54,18 @@ class KisRestClient:
                 self._auth.invalidate()
                 continue
 
-            # KIS rate limit: HTTP 500 + EGW00201
+            # KIS 500 오류 — rate limit(EGW00201) 또는 일시 서버 오류 모두 재시도
             if resp.status_code == 500:
                 try:
                     body = resp.json()
-                    if body.get("msg_cd") == "EGW00201":
-                        wait = attempt + 1
-                        logger.warning("Rate limit (EGW00201) — {}초 후 재시도 (시도 {})", wait, attempt + 1)
-                        await asyncio.sleep(wait)
-                        continue
+                    msg_cd = body.get("msg_cd", "")
+                    wait = attempt + 1
+                    logger.warning("KIS 500 ({}) — {}초 후 재시도 (시도 {})", msg_cd, wait, attempt + 1)
                 except Exception:
-                    pass
+                    wait = attempt + 1
+                    logger.warning("KIS 500 (파싱 불가) — {}초 후 재시도 (시도 {})", wait, attempt + 1)
+                await asyncio.sleep(wait)
+                continue
 
             if not resp.is_success:
                 logger.error("HTTP 오류 | status={} body={}", resp.status_code, resp.text)

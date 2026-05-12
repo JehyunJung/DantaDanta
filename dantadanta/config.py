@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
 
     # 매매 설정
-    budget_limit: int = 1_000_000
+    budget_limit: int = 10_000_000
     max_position_ratio: float = 0.2
 
     # 알림

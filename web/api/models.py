@@ -32,8 +32,8 @@ class OrderRecord(SQLModel, table=True):
     name: str = ""
     side: str  # buy / sell
     qty: int
-    price: int
-    amount: int  # qty * price
+    price: float
+    amount: float  # qty * price
     reason: str = ""
     strategy: str = ""
     created_at: datetime = Field(default_factory=datetime.now)

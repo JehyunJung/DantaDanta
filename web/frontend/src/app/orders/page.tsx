@@ -31,8 +31,12 @@ export default async function Orders() {
                 <td className="py-2 pr-4">{o.name || o.symbol}<span className="text-gray-500 text-xs ml-1">{o.symbol}</span></td>
                 <td className={`py-2 pr-4 font-medium ${o.side === "buy" ? "text-red-400" : "text-blue-400"}`}>{o.side === "buy" ? "매수" : "매도"}</td>
                 <td className="py-2 px-4 text-right">{fmt(o.qty)}주</td>
-                <td className="py-2 px-4 text-right">{fmt(o.price)}원</td>
-                <td className="py-2 px-4 text-right">{fmt(o.amount)}원</td>
+                <td className="py-2 px-4 text-right">
+                  {o.market !== "KRX" ? `$${o.price.toFixed(2)}` : `${fmt(Math.round(o.price))}원`}
+                </td>
+                <td className="py-2 px-4 text-right">
+                  {o.market !== "KRX" ? `$${o.amount.toFixed(2)}` : `${fmt(Math.round(o.amount))}원`}
+                </td>
                 <td className="py-2 px-4 text-gray-400 text-xs">{o.strategy}</td>
                 <td className="py-2 pl-4 text-gray-400 text-xs">{o.reason}</td>
               </tr>

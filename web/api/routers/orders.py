@@ -40,7 +40,19 @@ async def manual_buy(
     try:
         sym = body.symbol.upper()
         name = _lookup_name(sym, session)
-        result = await order_api.buy(sym, body.qty, body.price)
+
+        from web.api.models import UniverseSymbol
+        row = session.get(UniverseSymbol, sym)
+        market = row.market if row else "KRX"
+
+        if market != "KRX":
+            from dantadanta.config import get_settings
+            if get_settings().kis_is_mock:
+                raise HTTPException(status_code=400, detail="모의투자에서는 해외주식 거래가 지원되지 않습니다.")
+            result = await order_api.buy_overseas(sym, market, body.qty, float(body.price))
+        else:
+            result = await order_api.buy(sym, body.qty, body.price)
+
         record_order(order_no=result.order_no, symbol=sym, side="buy",
                      qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
         invalidate_cache()
@@ -62,7 +74,16 @@ async def manual_sell(
     try:
         sym = body.symbol.upper()
         name = _lookup_name(sym, session)
-        result = await order_api.sell(sym, body.qty, body.price)
+
+        from web.api.models import UniverseSymbol
+        row = session.get(UniverseSymbol, sym)
+        market = row.market if row else "KRX"
+
+        if market != "KRX":
+            result = await order_api.sell_overseas(sym, market, body.qty, float(body.price))
+        else:
+            result = await order_api.sell(sym, body.qty, body.price)
+
         record_order(order_no=result.order_no, symbol=sym, side="sell",
                      qty=body.qty, price=body.price, name=name, reason="웹 수동주문")
         invalidate_cache()
@@ -84,6 +105,9 @@ def get_orders(
     limit: int = 100,
     session: Session = Depends(get_session),
 ):
+    from web.api.models import UniverseSymbol
+    market_map = {r.symbol: r.market for r in session.exec(select(UniverseSymbol)).all()}
+
     stmt = select(OrderRecord).order_by(OrderRecord.created_at.desc()).limit(limit)
     records = session.exec(stmt).all()
 
@@ -100,6 +124,7 @@ def get_orders(
             "reason": r.reason,
             "strategy": r.strategy,
             "created_at": r.created_at.isoformat(),
+            "market": market_map.get(r.symbol, "KRX"),
         }
         for r in records
         if (symbol is None or r.symbol == symbol)

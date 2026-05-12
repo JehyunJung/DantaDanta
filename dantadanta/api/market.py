@@ -29,24 +29,23 @@ class MarketApi:
     def __init__(self, client: KisRestClient) -> None:
         self._c = client
         self._cfg = get_settings()
-        # 해외 API는 실거래 앱키 필요 (모의 앱키로 실서버 호출 불가)
-        if self._cfg.kis_is_mock and self._cfg.kis_real_app_key:
-            from dantadanta.config import Settings
-            real_cfg = Settings(
-                kis_app_key=self._cfg.kis_real_app_key,
-                kis_app_secret=self._cfg.kis_real_app_secret,
-                kis_account_no=self._cfg.kis_account_no,
-                kis_is_mock=False,
-            )
-            self._real_auth = TokenManager(real_cfg)
-            self._real_app_key = self._cfg.kis_real_app_key
-            self._real_app_secret = self._cfg.kis_real_app_secret
-            logger.info("MarketApi: 실거래 앱키로 해외 시세 설정 완료")
-        else:
-            self._real_auth = self._c._auth
-            self._real_app_key = self._cfg.kis_app_key
-            self._real_app_secret = self._cfg.kis_app_secret
-            logger.warning("MarketApi: 실거래 앱키 없음 — 모의 앱키로 해외 시세 시도")
+        # 실거래 모드에서만 실서버 직접 호출용 인증 설정 (해외 KIS API)
+        if not self._cfg.kis_is_mock:
+            if self._cfg.kis_real_app_key:
+                from dantadanta.config import Settings
+                real_cfg = Settings(
+                    kis_app_key=self._cfg.kis_real_app_key,
+                    kis_app_secret=self._cfg.kis_real_app_secret,
+                    kis_account_no=self._cfg.kis_account_no,
+                    kis_is_mock=False,
+                )
+                self._real_auth = TokenManager(real_cfg)
+                self._real_app_key = self._cfg.kis_real_app_key
+                self._real_app_secret = self._cfg.kis_real_app_secret
+            else:
+                self._real_auth = self._c._auth
+                self._real_app_key = self._cfg.kis_app_key
+                self._real_app_secret = self._cfg.kis_app_secret
 
     async def _ovrs_get(self, path: str, tr_id: str, params: dict) -> dict:
         """해외 시세 조회 — 항상 실서버로 직접 호출 (실서버 토큰 사용)."""
@@ -140,13 +139,24 @@ class MarketApi:
         return df.sort_values("date").reset_index(drop=True)
 
     async def get_overseas_price(self, symbol: str, excd: str) -> dict:
-        """해외 주식 현재가 조회."""
-        data = await self._ovrs_get(
-            _OVRS_PRICE_PATH,
-            tr_id="HHDFS00000300",
-            params={"AUTH": "", "EXCD": excd, "SYMB": symbol},
-        )
-        return data.get("output", {})
+        """해외 주식 현재가 조회 — yfinance 사용. last(USD) + last_krw(원화 환산) 반환."""
+        import asyncio
+        import yfinance as yf
+
+        def _fetch() -> dict:
+            # 환율 조회 (USDKRW=X)
+            try:
+                fx = yf.Ticker("USDKRW=X").fast_info
+                rate = getattr(fx, "last_price", None) or getattr(fx, "regularMarketPrice", None) or 1400.0
+            except Exception:
+                rate = 1400.0
+
+            ticker = yf.Ticker(symbol)
+            info = ticker.fast_info
+            last = getattr(info, "last_price", None) or getattr(info, "regularMarketPrice", None) or 0.0
+            return {"last": str(last), "last_krw": str(int(last * rate)), "usdkrw": str(rate)}
+
+        return await asyncio.get_event_loop().run_in_executor(None, _fetch)
 
     async def get_overseas_chart(
         self,
@@ -155,39 +165,28 @@ class MarketApi:
         end: date,
         period: str = "D",
     ) -> pd.DataFrame:
-        """해외 주식 일/주/월봉 차트 조회."""
-        gubn = _OVRS_GUBN.get(period, "0")
-        data = await self._ovrs_get(
-            _OVRS_CHART_PATH,
-            tr_id="HHDFS76240000",
-            params={
-                "AUTH": "",
-                "EXCD": excd,
-                "SYMB": symbol,
-                "GUBN": gubn,
-                "BYMD": end.strftime("%Y%m%d"),
-                "MODP": "1",
-            },
-        )
-        rows = data.get("output2", [])
-        if not rows:
-            return pd.DataFrame()
+        """해외 주식 일봉 차트 조회 — yfinance 사용 (KIS 해외 시세 API 대체)."""
+        import asyncio
+        import yfinance as yf
 
-        df = pd.DataFrame(rows)
-        df = df.rename(columns={
-            "stck_bsop_date": "date",
-            "ovrs_nmix_prpr": "close",
-            "ovrs_nmix_oprc": "open",
-            "ovrs_nmix_hgpr": "high",
-            "ovrs_nmix_lwpr": "low",
-            "acml_vol": "volume",
-        })
-        numeric_cols = ["close", "open", "high", "low", "volume"]
-        for col in numeric_cols:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-        df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
-        return df.sort_values("date").reset_index(drop=True)
+        start = end - __import__("datetime").timedelta(days=200)
+
+        def _fetch() -> pd.DataFrame:
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(start=start.strftime("%Y-%m-%d"),
+                                end=(end + __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d"),
+                                interval="1d", auto_adjust=True)
+            if df.empty:
+                return pd.DataFrame()
+            df = df.reset_index()
+            df = df.rename(columns={
+                "Date": "date", "Open": "open", "High": "high",
+                "Low": "low", "Close": "close", "Volume": "volume",
+            })
+            df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+            return df[["date", "open", "high", "low", "close", "volume"]].sort_values("date").reset_index(drop=True)
+
+        return await asyncio.get_event_loop().run_in_executor(None, _fetch)
 
     async def get_minute_chart(self, symbol: str, hour: str = "090000") -> pd.DataFrame:
         """분봉 차트 조회. hour: HHMMSS 형식."""

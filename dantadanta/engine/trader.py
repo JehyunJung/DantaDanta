@@ -7,6 +7,7 @@ from loguru import logger
 from dantadanta.analysis.news import get_news_sentiment
 from dantadanta.api.market import MarketApi
 from dantadanta.api.order import OrderApi
+from dantadanta.config import get_settings
 from dantadanta.engine.budget import BudgetManager
 from dantadanta.engine.order_recorder import record_order
 from dantadanta.notify.telegram import notify_order
@@ -20,16 +21,23 @@ def _load_trade_config() -> dict:
         with Session(engine) as s:
             cfg = get_config(s)
         return {
-            "sl_rate":       -float(cfg.get("swing_sl_rate", 5.0)) / 100,
-            "tp_rate":        float(cfg.get("swing_tp_rate", 5.0)) / 100,
-            "news_enabled":   cfg.get("news_enabled", "true") == "true",
-            "news_threshold": float(cfg.get("news_threshold", -0.3)),
-            "budget_limit":   int(cfg.get("budget_limit", 1_000_000)),
-            "max_pos_ratio":  float(cfg.get("max_position_ratio", 0.2)),
+            "sl_rate":               -float(cfg.get("swing_sl_rate", 5.0)) / 100,
+            "tp_rate":                float(cfg.get("swing_tp_rate", 5.0)) / 100,
+            "news_enabled":           cfg.get("news_enabled", "true") == "true",
+            "news_threshold":         float(cfg.get("news_threshold", -0.3)),
+            "krx_budget_limit":            int(cfg.get("krx_budget_limit", 10_000_000)),
+            "krx_max_pos_ratio":           float(cfg.get("krx_max_position_ratio", 0.2)),
+            "overseas_budget_limit":       int(cfg.get("overseas_budget_limit", 10_000_000)),
+            "overseas_max_pos_ratio":      float(cfg.get("overseas_max_position_ratio", 0.2)),
+            "strategy_id":                 cfg.get("strategy_id", "ma_cross"),
+            "kis_builder_strategy":        cfg.get("kis_builder_strategy", "golden_cross"),
         }
     except Exception:
         return {"sl_rate": -0.05, "tp_rate": 0.05, "news_enabled": True,
-                "news_threshold": -0.3, "budget_limit": 1_000_000, "max_pos_ratio": 0.2}
+                "news_threshold": -0.3, "krx_budget_limit": 10_000_000,
+                "krx_max_pos_ratio": 0.2, "overseas_budget_limit": 10_000_000,
+                "overseas_max_pos_ratio": 0.2, "strategy_id": "ma_cross",
+                "kis_builder_strategy": "golden_cross"}
 
 
 def _load_market_map() -> dict[str, str]:
@@ -52,12 +60,15 @@ class Trader:
         budget: BudgetManager,
         strategy: BaseStrategy,
         universe: list[str],
+        budget_overseas: BudgetManager | None = None,
     ) -> None:
         self._market = market_api
         self._order = order_api
-        self._budget = budget
+        self._budget_krx = budget
+        self._budget_overseas = budget_overseas or budget
         self._strategy = strategy
         self._universe = universe
+        self._cfg = get_settings()
 
     async def run_cycle(self) -> None:
         tcfg = _load_trade_config()
@@ -66,8 +77,18 @@ class Trader:
         news_enabled   = tcfg["news_enabled"]
         news_threshold = tcfg["news_threshold"]
 
+        # 전략 동적 교체
+        strategy_id = tcfg.get("strategy_id", "ma_cross")
+        if strategy_id == "kis_builder":
+            from dantadanta.strategy.kis_builder import KisBuilderStrategy
+            self._strategy = KisBuilderStrategy(strategy_id=tcfg.get("kis_builder_strategy", "golden_cross"))
+        else:
+            from dantadanta.strategy.ma_cross import MaCrossStrategy
+            self._strategy = MaCrossStrategy()
+
         # 예산 설정을 config에서 동기화
-        self._budget.update_limits(tcfg["budget_limit"], tcfg["max_pos_ratio"])
+        self._budget_krx.update_limits(tcfg["krx_budget_limit"], tcfg["krx_max_pos_ratio"])
+        self._budget_overseas.update_limits(tcfg["overseas_budget_limit"], tcfg["overseas_max_pos_ratio"])
 
         logger.info("=== 매매 사이클 시작 | 전략={} | 손절={:.1f}% 익절={:.1f}% ===",
                     self._strategy.name, abs(sl_rate) * 100, tp_rate * 100)
@@ -77,30 +98,49 @@ class Trader:
         logger.info("계좌 현황 | 순자산={:,}원 / 주식평가={:,}원 / 가용현금={:,}원 / 보유종목={}개",
                     account.net_asset, account.stocks_eval, cash, len(account.holdings))
 
-        # 실제 잔고로 예산 동기화 (이미 보유 주식 차감)
-        self._budget.sync(cash, account.stocks_eval)
+        # 마켓별 보유 주식 평가금액 분리
+        market_map = _load_market_map()
+        krx_stocks_eval = sum(
+            h.current_price * h.qty for h in account.holdings
+            if market_map.get(h.symbol, "KRX") == "KRX"
+        )
+        overseas_stocks_eval = sum(
+            h.current_price * h.qty for h in account.holdings
+            if market_map.get(h.symbol, "KRX") != "KRX"
+        )
+        overseas_cash = account.overseas_cash
+        self._budget_krx.sync(cash, krx_stocks_eval)
+        self._budget_overseas.sync(overseas_cash, overseas_stocks_eval)
 
         # 1. 보유 종목 손절/익절 체크
         for h in account.holdings:
             if h.qty <= 0:
                 continue
+            is_domestic_hold = market_map.get(h.symbol, "KRX") == "KRX"
+            budget = self._budget_krx if is_domestic_hold else self._budget_overseas
+            reason = None
             if h.pnl_rate <= sl_rate * 100:
+                reason = "손절"
                 logger.warning("손절 발동 | {} 수익률={:.2f}%", h.symbol, h.pnl_rate)
-                result = await self._order.sell(h.symbol, h.qty)
-                await self._budget.record_sell(h.symbol, h.current_price * h.qty)
-                record_order(order_no=result.order_no, symbol=h.symbol, side="sell",
-                             qty=h.qty, price=h.current_price, name=h.name, reason="손절")
-                await notify_order("sell", h.symbol, h.qty, h.current_price, "손절")
             elif h.pnl_rate >= tp_rate * 100:
+                reason = "익절"
                 logger.info("익절 발동 | {} 수익률={:.2f}%", h.symbol, h.pnl_rate)
-                result = await self._order.sell(h.symbol, h.qty)
-                await self._budget.record_sell(h.symbol, h.current_price * h.qty)
-                record_order(order_no=result.order_no, symbol=h.symbol, side="sell",
-                             qty=h.qty, price=h.current_price, name=h.name, reason="익절")
-                await notify_order("sell", h.symbol, h.qty, h.current_price, "익절")
+
+            if reason:
+                try:
+                    if is_domestic_hold:
+                        result = await self._order.sell(h.symbol, h.qty)
+                    else:
+                        excd = market_map.get(h.symbol, "NYSE")
+                        result = await self._order.sell_overseas(h.symbol, excd, h.qty)
+                    await budget.record_sell(h.symbol, h.current_price * h.qty)
+                    record_order(order_no=result.order_no, symbol=h.symbol, side="sell",
+                                 qty=h.qty, price=h.current_price, name=h.name, reason=reason)
+                    await notify_order("sell", h.symbol, h.qty, h.current_price, reason)
+                except Exception as exc:
+                    logger.error("{} 매도 실패 | {}: {}", reason, h.symbol, exc)
 
         # 2. 유니버스 스캔
-        market_map = _load_market_map()
         held_symbols = {h.symbol for h in account.holdings}  # 이미 보유 중인 종목
         end = date.today()
         start = end - timedelta(days=120)
@@ -148,30 +188,36 @@ class Trader:
                 if is_domestic:
                     price_data = await self._market.get_price(symbol)
                     current_price = int(price_data.get("stck_prpr", 0))
+                    price_krw = current_price
                 else:
                     price_data = await self._market.get_overseas_price(symbol, market)
-                    current_price = int(float(price_data.get("last", 0)))
+                    current_price = float(price_data.get("last", 0))   # USD
+                    price_krw = int(price_data.get("last_krw", 0))      # KRW 환산
 
-                if current_price <= 0:
+                if current_price <= 0 or price_krw <= 0:
                     continue
 
-                # 수량 산정
-                invest_amount = min(self._budget.per_stock_limit(), self._budget.remaining)
-                qty = invest_amount // current_price
+                # 수량 산정 — 예산/수량은 KRW 기준
+                budget = self._budget_krx if is_domestic else self._budget_overseas
+                invest_amount = min(budget.per_stock_limit(), budget.remaining)
+                qty = invest_amount // price_krw
                 if qty <= 0:
                     continue
 
-                amount = qty * current_price
-                if not await self._budget.can_buy(symbol, amount):
+                amount = qty * price_krw  # KRW 기준 예산 차감
+                if not await budget.can_buy(symbol, amount):
                     continue
 
-                # 주문
+                # 주문 — 해외는 USD 가격으로
                 if is_domestic:
                     result = await self._order.buy(symbol, qty)
                 else:
+                    if self._cfg.kis_is_mock:
+                        logger.warning("모의투자 해외주식 미지원 — {} 스킵", symbol)
+                        continue
                     result = await self._order.buy_overseas(symbol, market, qty, current_price)
 
-                await self._budget.record_buy(symbol, amount)
+                await budget.record_buy(symbol, amount)
                 record_order(order_no=result.order_no, symbol=symbol, side="buy",
                              qty=qty, price=current_price, reason=signal.reason,
                              strategy=self._strategy.name)

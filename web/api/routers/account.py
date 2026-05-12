@@ -5,9 +5,11 @@ import time
 from typing import Any
 
 from fastapi import APIRouter, Depends
+from sqlmodel import Session, select
 
 from dantadanta.api.order import OrderApi
 from web.api.deps import get_order_api
+from web.api.database import get_session
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 
@@ -59,9 +61,11 @@ async def get_account(order_api: OrderApi = Depends(get_order_api)):
 
 
 @router.get("/positions")
-async def get_positions(order_api: OrderApi = Depends(get_order_api)):
+async def get_positions(order_api: OrderApi = Depends(get_order_api), session: Session = Depends(get_session)):
+    from web.api.models import UniverseSymbol
     data = await _fetch_account(order_api)
     holdings = data.get("holdings", [])
+    market_map = {r.symbol: r.market for r in session.exec(select(UniverseSymbol)).all()}
     return [
         {
             "symbol": h.symbol,
@@ -72,6 +76,7 @@ async def get_positions(order_api: OrderApi = Depends(get_order_api)):
             "pnl_amount": h.pnl_amount,
             "pnl_rate": h.pnl_rate,
             "amount": h.current_price * h.qty,
+            "market": market_map.get(h.symbol, "KRX"),
         }
         for h in holdings
     ]
